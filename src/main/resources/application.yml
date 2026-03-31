@@ -1,0 +1,16 @@
+spring:
+  application:
+    name: aws-bedrock-chat-journal
+  jackson:
+    serialization:
+      indent-output: true
+
+server:
+  port: 8080
+
+app:
+  aws:
+    region: us-east-1
+    default-model-id: amazon.nova-lite-v1:0
+  storage:
+    sessions-directory: data/sessions
