@@ -79,17 +79,19 @@ if [[ "${OUTPUT_MODE}" == "raw" ]]; then
   run_curl
   curl_status=$?
 else
-  curl_stderr_file="$(mktemp)"
-  trap 'rm -f "${curl_stderr_file}"' EXIT
-
-  run_curl 2>"${curl_stderr_file}" | python3 - <<'PY'
+  BASE_URL="${BASE_URL}" SESSION_ID="${SESSION_ID}" MESSAGE_TEXT="${MESSAGE_TEXT}" python3 - <<'PY'
 import json
+import os
+import subprocess
 import sys
 
 current_event = None
 data_lines = []
+event_error = False
 
 def handle_event(event_name: str | None, payload_lines: list[str]) -> None:
+    global event_error
+
     if not event_name:
         return
 
@@ -136,27 +138,71 @@ def handle_event(event_name: str | None, payload_lines: list[str]) -> None:
         print(flush=True)
         print(flush=True)
         print(f"Error: {message}", file=sys.stderr, flush=True)
+        event_error = True
         sys.exit(1)
 
-for raw_line in sys.stdin:
-    line = raw_line.rstrip("\n")
-    if line.startswith("event:"):
-        current_event = line[len("event:"):].strip()
-        continue
-    if line.startswith("data:"):
-        data_lines.append(line[len("data:"):].strip())
-        continue
-    if line == "":
-        handle_event(current_event, data_lines)
-        current_event = None
-        data_lines = []
+def process_stream(stream) -> None:
+    global current_event, data_lines
+
+    for raw_line in stream:
+        line = raw_line.rstrip("\n")
+        if line.startswith("event:"):
+            current_event = line[len("event:"):].strip()
+            continue
+        if line.startswith("data:"):
+            data_lines.append(line[len("data:"):].strip())
+            continue
+        if line == "":
+            handle_event(current_event, data_lines)
+            current_event = None
+            data_lines = []
+
+curl_command = [
+    "curl",
+    "--no-buffer",
+    "--silent",
+    "--show-error",
+    "--request",
+    "POST",
+    "--header",
+    "Accept: text/event-stream",
+    "--header",
+    "Content-Type: application/json",
+    "--data",
+    json.dumps({"text": os.environ["MESSAGE_TEXT"]}),
+    f'{os.environ["BASE_URL"]}/api/sessions/{os.environ["SESSION_ID"]}/messages/stream',
+]
+
+process = subprocess.Popen(
+    curl_command,
+    stdout=subprocess.PIPE,
+    stderr=subprocess.PIPE,
+    text=True,
+    bufsize=1,
+)
+
+assert process.stdout is not None
+assert process.stderr is not None
+
+try:
+    process_stream(process.stdout)
+finally:
+    process.stdout.close()
+
+stderr_output = process.stderr.read()
+return_code = process.wait()
 
 if current_event or data_lines:
     handle_event(current_event, data_lines)
+
+if return_code != 0 and not event_error:
+    if stderr_output:
+        print(stderr_output, file=sys.stderr, end="")
+    sys.exit(return_code)
 PY
+  parser_status=$?
 fi
 
-statuses=("${PIPESTATUS[@]}")
 set -e
 
 if [[ "${OUTPUT_MODE}" == "raw" ]]; then
@@ -165,17 +211,8 @@ if [[ "${OUTPUT_MODE}" == "raw" ]]; then
     exit "${curl_status}"
   fi
 else
-  curl_status=${statuses[0]:-0}
-  parser_status=${statuses[1]:-0}
-
+  parser_status=${parser_status:-0}
   if [[ "${parser_status}" -ne 0 ]]; then
     exit "${parser_status}"
-  fi
-
-  if [[ "${curl_status}" -ne 0 ]]; then
-    if [[ -s "${curl_stderr_file}" ]]; then
-      cat "${curl_stderr_file}" >&2
-    fi
-    exit "${curl_status}"
   fi
 fi
