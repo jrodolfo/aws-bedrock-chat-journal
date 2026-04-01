@@ -138,11 +138,11 @@ create_session_if_needed() {
   )"
 
   SESSION_ID="$(
-    printf '%s' "${create_response}" | python3 - <<'PY'
+    CREATE_RESPONSE="${create_response}" python3 - <<'PY'
 import json
-import sys
+import os
 
-response = json.load(sys.stdin)
+response = json.loads(os.environ["CREATE_RESPONSE"])
 print(response["sessionId"])
 PY
   )"
@@ -151,11 +151,11 @@ PY
 }
 
 print_non_streaming_response() {
-  python3 - <<'PY'
+  RESPONSE_JSON="${1}" python3 - <<'PY'
 import json
-import sys
+import os
 
-response = json.load(sys.stdin)
+response = json.loads(os.environ["RESPONSE_JSON"])
 reply = response.get("reply", "")
 metadata = response.get("metadata") or {}
 
@@ -217,7 +217,7 @@ send_non_streaming_message() {
       "${BASE_URL}/api/sessions/${SESSION_ID}/messages"
   )"
 
-  printf '%s' "${response}" | print_non_streaming_response
+  print_non_streaming_response "${response}"
 }
 
 send_streaming_message() {
