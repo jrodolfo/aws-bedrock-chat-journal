@@ -7,6 +7,7 @@ import net.jrodolfo.aws.bedrock.chat.journal.exception.BadRequestException;
 import net.jrodolfo.aws.bedrock.chat.journal.exception.ResourceNotFoundException;
 import net.jrodolfo.aws.bedrock.chat.journal.model.ChatMessage;
 import net.jrodolfo.aws.bedrock.chat.journal.model.ChatSession;
+import net.jrodolfo.aws.bedrock.chat.journal.model.BedrockReply;
 import net.jrodolfo.aws.bedrock.chat.journal.model.CreateSessionRequest;
 import net.jrodolfo.aws.bedrock.chat.journal.model.SendMessageRequest;
 import net.jrodolfo.aws.bedrock.chat.journal.model.SendMessageResponse;
@@ -102,8 +103,8 @@ public class ChatSessionService {
         ChatMessage userMessage = ChatMessage.userText(messageText);
         session.getMessages().add(userMessage);
 
-        String assistantReply = bedrockChatService.sendConversation(session);
-        ChatMessage assistantMessage = ChatMessage.assistantText(assistantReply);
+        BedrockReply bedrockReply = bedrockChatService.sendConversation(session);
+        ChatMessage assistantMessage = ChatMessage.assistantText(bedrockReply.getText(), bedrockReply.getMetadata());
         session.getMessages().add(assistantMessage);
 
         sessionStore.save(session);
@@ -112,7 +113,7 @@ public class ChatSessionService {
                 session.getModelId(),
                 session.getMessages().size());
 
-        return new SendMessageResponse(session.getSessionId(), session.getModelId(), assistantReply, assistantMessage);
+        return new SendMessageResponse(session.getSessionId(), session.getModelId(), bedrockReply.getText(), assistantMessage, bedrockReply.getMetadata());
     }
 
     private void ensureSessionCanAcceptMoreMessages(ChatSession session) {

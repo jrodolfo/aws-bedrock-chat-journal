@@ -2,6 +2,7 @@ package net.jrodolfo.aws.bedrock.chat.journal.service;
 
 import java.util.List;
 import net.jrodolfo.aws.bedrock.chat.journal.exception.BadRequestException;
+import net.jrodolfo.aws.bedrock.chat.journal.model.BedrockReply;
 import net.jrodolfo.aws.bedrock.chat.journal.exception.BedrockInvocationException;
 import net.jrodolfo.aws.bedrock.chat.journal.model.ChatMessage;
 import net.jrodolfo.aws.bedrock.chat.journal.model.ChatSession;
@@ -13,10 +14,13 @@ import org.mockito.Mockito;
 import software.amazon.awssdk.core.exception.SdkClientException;
 import software.amazon.awssdk.services.bedrockruntime.BedrockRuntimeClient;
 import software.amazon.awssdk.services.bedrockruntime.model.ConversationRole;
+import software.amazon.awssdk.services.bedrockruntime.model.ConverseMetrics;
 import software.amazon.awssdk.services.bedrockruntime.model.ConverseOutput;
 import software.amazon.awssdk.services.bedrockruntime.model.ConverseRequest;
 import software.amazon.awssdk.services.bedrockruntime.model.ConverseResponse;
 import software.amazon.awssdk.services.bedrockruntime.model.Message;
+import software.amazon.awssdk.services.bedrockruntime.model.StopReason;
+import software.amazon.awssdk.services.bedrockruntime.model.TokenUsage;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
@@ -41,13 +45,20 @@ class BedrockChatServiceTest {
                 )
         );
 
-        String reply = service.sendConversation(session);
+        BedrockReply reply = service.sendConversation(session);
 
         ArgumentCaptor<ConverseRequest> requestCaptor = ArgumentCaptor.forClass(ConverseRequest.class);
         Mockito.verify(client).converse(requestCaptor.capture());
         ConverseRequest request = requestCaptor.getValue();
 
-        assertThat(reply).isEqualTo("First reply\nSecond reply");
+        assertThat(reply.getText()).isEqualTo("First reply\nSecond reply");
+        assertThat(reply.getMetadata()).isNotNull();
+        assertThat(reply.getMetadata().getStopReason()).isEqualTo("end_turn");
+        assertThat(reply.getMetadata().getInputTokens()).isEqualTo(10);
+        assertThat(reply.getMetadata().getOutputTokens()).isEqualTo(20);
+        assertThat(reply.getMetadata().getTotalTokens()).isEqualTo(30);
+        assertThat(reply.getMetadata().getBedrockLatencyMs()).isEqualTo(111L);
+        assertThat(reply.getMetadata().getInferenceConfig().getTemperature()).isEqualTo(0.4);
         assertThat(request.modelId()).isEqualTo("amazon.nova-lite-v1:0");
         assertThat(request.system()).hasSize(1);
         assertThat(request.system().get(0).text()).isEqualTo("You are a study assistant.");
@@ -146,6 +157,15 @@ class BedrockChatServiceTest {
                 .toList();
 
         return ConverseResponse.builder()
+                .stopReason(StopReason.END_TURN)
+                .usage(TokenUsage.builder()
+                        .inputTokens(10)
+                        .outputTokens(20)
+                        .totalTokens(30)
+                        .build())
+                .metrics(ConverseMetrics.builder()
+                        .latencyMs(111L)
+                        .build())
                 .output(ConverseOutput.builder()
                         .message(Message.builder()
                                 .role(ConversationRole.ASSISTANT)

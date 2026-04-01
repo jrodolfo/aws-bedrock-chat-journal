@@ -4,11 +4,13 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import java.nio.file.Path;
 import net.jrodolfo.aws.bedrock.chat.journal.config.AppProperties;
 import net.jrodolfo.aws.bedrock.chat.journal.exception.BadRequestException;
+import net.jrodolfo.aws.bedrock.chat.journal.model.BedrockReply;
 import net.jrodolfo.aws.bedrock.chat.journal.exception.BedrockInvocationException;
 import net.jrodolfo.aws.bedrock.chat.journal.exception.ResourceNotFoundException;
 import net.jrodolfo.aws.bedrock.chat.journal.model.ChatSession;
 import net.jrodolfo.aws.bedrock.chat.journal.model.CreateSessionRequest;
 import net.jrodolfo.aws.bedrock.chat.journal.model.InferenceConfig;
+import net.jrodolfo.aws.bedrock.chat.journal.model.ResponseMetadata;
 import net.jrodolfo.aws.bedrock.chat.journal.model.SendMessageRequest;
 import net.jrodolfo.aws.bedrock.chat.journal.model.SendMessageResponse;
 import net.jrodolfo.aws.bedrock.chat.journal.model.UpdateSessionRequest;
@@ -164,10 +166,14 @@ class ChatSessionServiceTest {
         ChatSession storedSession = service.getSession(session.getSessionId());
 
         assertThat(response.getReply()).isEqualTo("Bedrock answer");
+        assertThat(response.getMetadata()).isNotNull();
+        assertThat(response.getMetadata().getStopReason()).isEqualTo("end_turn");
         assertThat(storedSession.getMessages()).hasSize(2);
         assertThat(storedSession.getMessages().get(0).getRole()).isEqualTo("user");
         assertThat(storedSession.getMessages().get(1).getRole()).isEqualTo("assistant");
         assertThat(storedSession.getMessages().get(1).getContent().get(0).getText()).isEqualTo("Bedrock answer");
+        assertThat(storedSession.getMessages().get(1).getMetadata()).isNotNull();
+        assertThat(storedSession.getMessages().get(1).getMetadata().getStopReason()).isEqualTo("end_turn");
     }
 
     @Test
@@ -240,7 +246,7 @@ class ChatSessionServiceTest {
 
     private ChatSessionService createService(String bedrockReply) {
         BedrockChatService bedrockChatService = Mockito.mock(BedrockChatService.class);
-        Mockito.when(bedrockChatService.sendConversation(any())).thenReturn(bedrockReply);
+        Mockito.when(bedrockChatService.sendConversation(any())).thenReturn(new BedrockReply(bedrockReply, sampleMetadata()));
         return createService(bedrockChatService, 100);
     }
 
@@ -252,7 +258,7 @@ class ChatSessionServiceTest {
 
     private ChatSessionService createService(String bedrockReply, int maxMessagesPerSession) {
         BedrockChatService bedrockChatService = Mockito.mock(BedrockChatService.class);
-        Mockito.when(bedrockChatService.sendConversation(any())).thenReturn(bedrockReply);
+        Mockito.when(bedrockChatService.sendConversation(any())).thenReturn(new BedrockReply(bedrockReply, sampleMetadata()));
         return createService(bedrockChatService, maxMessagesPerSession);
     }
 
@@ -267,5 +273,13 @@ class ChatSessionServiceTest {
         ((FileSessionStore) store).initializeStorage();
 
         return new ChatSessionService(store, bedrockChatService, appProperties);
+    }
+
+    private ResponseMetadata sampleMetadata() {
+        ResponseMetadata metadata = new ResponseMetadata();
+        metadata.setStopReason("end_turn");
+        metadata.setModelId("amazon.nova-lite-v1:0");
+        metadata.setDurationMs(123L);
+        return metadata;
     }
 }

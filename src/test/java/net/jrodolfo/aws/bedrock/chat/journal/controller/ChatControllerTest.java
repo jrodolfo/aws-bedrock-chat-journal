@@ -10,6 +10,7 @@ import net.jrodolfo.aws.bedrock.chat.journal.model.ChatMessage;
 import net.jrodolfo.aws.bedrock.chat.journal.model.ChatSession;
 import net.jrodolfo.aws.bedrock.chat.journal.model.CreateSessionRequest;
 import net.jrodolfo.aws.bedrock.chat.journal.model.InferenceConfig;
+import net.jrodolfo.aws.bedrock.chat.journal.model.ResponseMetadata;
 import net.jrodolfo.aws.bedrock.chat.journal.model.SendMessageResponse;
 import net.jrodolfo.aws.bedrock.chat.journal.model.UpdateSessionRequest;
 import net.jrodolfo.aws.bedrock.chat.journal.service.ChatSessionService;
@@ -199,11 +200,15 @@ class ChatControllerTest {
 
     @Test
     void sendMessageReturnsAssistantReply() throws Exception {
+        ResponseMetadata metadata = new ResponseMetadata();
+        metadata.setStopReason("end_turn");
+        metadata.setDurationMs(123L);
         SendMessageResponse response = new SendMessageResponse(
                 "session-1",
                 "amazon.nova-lite-v1:0",
                 "Bedrock answer",
-                ChatMessage.assistantText("Bedrock answer")
+                ChatMessage.assistantText("Bedrock answer", metadata),
+                metadata
         );
         Mockito.when(chatSessionService.sendMessage(eq("session-1"), any())).thenReturn(response);
 
@@ -216,7 +221,8 @@ class ChatControllerTest {
                                 """))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.reply").value("Bedrock answer"))
-                .andExpect(jsonPath("$.assistantMessage.role").value("assistant"));
+                .andExpect(jsonPath("$.assistantMessage.role").value("assistant"))
+                .andExpect(jsonPath("$.metadata.stopReason").value("end_turn"));
     }
 
     @Test

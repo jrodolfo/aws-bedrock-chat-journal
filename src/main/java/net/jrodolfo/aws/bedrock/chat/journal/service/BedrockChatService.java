@@ -1,13 +1,16 @@
 package net.jrodolfo.aws.bedrock.chat.journal.service;
 
+import java.time.Instant;
 import java.util.ArrayList;
 import java.util.List;
 import net.jrodolfo.aws.bedrock.chat.journal.exception.BadRequestException;
+import net.jrodolfo.aws.bedrock.chat.journal.model.BedrockReply;
 import net.jrodolfo.aws.bedrock.chat.journal.exception.BedrockInvocationException;
 import net.jrodolfo.aws.bedrock.chat.journal.model.ChatMessage;
 import net.jrodolfo.aws.bedrock.chat.journal.model.ChatSession;
 import net.jrodolfo.aws.bedrock.chat.journal.model.ContentBlock;
 import net.jrodolfo.aws.bedrock.chat.journal.model.InferenceConfig;
+import net.jrodolfo.aws.bedrock.chat.journal.model.ResponseMetadata;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Service;
@@ -32,13 +35,15 @@ public class BedrockChatService {
         this.bedrockRuntimeClient = bedrockRuntimeClient;
     }
 
-    public String sendConversation(ChatSession session) {
+    public BedrockReply sendConversation(ChatSession session) {
         try {
             int messageCount = session.getMessages() != null ? session.getMessages().size() : 0;
             log.debug("Sending conversation to Bedrock for sessionId={}, modelId={}, messageCount={}",
                     session.getSessionId(),
                     session.getModelId(),
                     messageCount);
+            Instant requestedAt = Instant.now();
+            long startedAt = System.currentTimeMillis();
 
             ConverseRequest.Builder requestBuilder = ConverseRequest.builder()
                     .modelId(session.getModelId())
@@ -55,12 +60,15 @@ public class BedrockChatService {
             }
 
             ConverseResponse response = bedrockRuntimeClient.converse(requestBuilder.build());
+            Instant respondedAt = Instant.now();
+            long durationMs = System.currentTimeMillis() - startedAt;
             String assistantReply = extractAssistantText(response);
+            ResponseMetadata metadata = toResponseMetadata(session, response, requestedAt, respondedAt, durationMs);
             log.debug("Received Bedrock reply for sessionId={}, modelId={}, replyLength={}",
                     session.getSessionId(),
                     session.getModelId(),
                     assistantReply.length());
-            return assistantReply;
+            return new BedrockReply(assistantReply, metadata);
         } catch (SdkException ex) {
             log.warn("Bedrock invocation failed for sessionId={}, modelId={}: {}",
                     session.getSessionId(),
@@ -86,6 +94,35 @@ public class BedrockChatService {
         }
 
         return builder.build();
+    }
+
+    private ResponseMetadata toResponseMetadata(ChatSession session,
+                                                ConverseResponse response,
+                                                Instant requestedAt,
+                                                Instant respondedAt,
+                                                long durationMs) {
+        ResponseMetadata metadata = new ResponseMetadata();
+        metadata.setRequestedAt(requestedAt);
+        metadata.setRespondedAt(respondedAt);
+        metadata.setDurationMs(durationMs);
+        metadata.setModelId(session.getModelId());
+        metadata.setInferenceConfig(session.getInferenceConfig());
+
+        if (response.stopReason() != null) {
+            metadata.setStopReason(response.stopReasonAsString());
+        }
+
+        if (response.usage() != null) {
+            metadata.setInputTokens(response.usage().inputTokens());
+            metadata.setOutputTokens(response.usage().outputTokens());
+            metadata.setTotalTokens(response.usage().totalTokens());
+        }
+
+        if (response.metrics() != null) {
+            metadata.setBedrockLatencyMs(response.metrics().latencyMs());
+        }
+
+        return metadata;
     }
 
     private List<Message> toBedrockMessages(List<ChatMessage> messages) {

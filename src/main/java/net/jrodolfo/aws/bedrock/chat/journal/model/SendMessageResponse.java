@@ -13,15 +13,18 @@ public class SendMessageResponse {
     private String reply;
     @Schema(description = "Assistant message stored in session format.")
     private ChatMessage assistantMessage;
+    @Schema(description = "Metadata captured for the generated assistant response.")
+    private ResponseMetadata metadata;
 
     public SendMessageResponse() {
     }
 
-    public SendMessageResponse(String sessionId, String modelId, String reply, ChatMessage assistantMessage) {
+    public SendMessageResponse(String sessionId, String modelId, String reply, ChatMessage assistantMessage, ResponseMetadata metadata) {
         this.sessionId = sessionId;
         this.modelId = modelId;
         this.reply = reply;
         this.assistantMessage = assistantMessage;
+        this.metadata = metadata;
     }
 
     public String getSessionId() {
@@ -54,5 +57,13 @@ public class SendMessageResponse {
 
     public void setAssistantMessage(ChatMessage assistantMessage) {
         this.assistantMessage = assistantMessage;
+    }
+
+    public ResponseMetadata getMetadata() {
+        return metadata;
+    }
+
+    public void setMetadata(ResponseMetadata metadata) {
+        this.metadata = metadata;
     }
 }

@@ -32,6 +32,14 @@ Each session file stores:
 - `inferenceConfig`
 - `messages`
 
+Assistant messages can also include optional `metadata`, such as:
+
+- request/response timestamps
+- duration in milliseconds
+- Bedrock stop reason
+- token counts when available
+- Bedrock latency when available
+
 ## Configuration
 
 Example `src/main/resources/application.yml`:
@@ -233,6 +241,56 @@ curl -X POST http://localhost:8080/api/sessions/<sessionId>/messages \
   }'
 ```
 
+Example response:
+
+```json
+{
+  "sessionId": "your-session-id",
+  "modelId": "amazon.nova-lite-v1:0",
+  "reply": "The Converse API lets you send structured chat history to a Bedrock model.",
+  "assistantMessage": {
+    "role": "assistant",
+    "content": [
+      {
+        "text": "The Converse API lets you send structured chat history to a Bedrock model."
+      }
+    ],
+    "metadata": {
+      "requestedAt": "2026-04-01T17:30:00Z",
+      "respondedAt": "2026-04-01T17:30:00Z",
+      "durationMs": 412,
+      "stopReason": "end_turn",
+      "inputTokens": 132,
+      "outputTokens": 221,
+      "totalTokens": 353,
+      "bedrockLatencyMs": 398,
+      "modelId": "amazon.nova-lite-v1:0",
+      "inferenceConfig": {
+        "temperature": 0.4,
+        "topP": 0.8,
+        "maxTokens": 256
+      }
+    }
+  },
+  "metadata": {
+    "requestedAt": "2026-04-01T17:30:00Z",
+    "respondedAt": "2026-04-01T17:30:00Z",
+    "durationMs": 412,
+    "stopReason": "end_turn",
+    "inputTokens": 132,
+    "outputTokens": 221,
+    "totalTokens": 353,
+    "bedrockLatencyMs": 398,
+    "modelId": "amazon.nova-lite-v1:0",
+    "inferenceConfig": {
+      "temperature": 0.4,
+      "topP": 0.8,
+      "maxTokens": 256
+    }
+  }
+}
+```
+
 ### Reset a session
 
 ```bash
@@ -320,6 +378,7 @@ Session limit exceeded:
 - Max stored messages per session: `100` by default
 - Session files are stored under `data/sessions`
 - If a Bedrock call fails, the new message exchange is not persisted to disk
+- Some Bedrock metadata fields may be absent depending on model behavior and SDK response content
 
 ## Notes
 
