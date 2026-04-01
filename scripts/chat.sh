@@ -46,8 +46,16 @@ Commands:
   /help           Show chat commands
   /session        Show current session info
   /model          Show the current session model
+  /model <id>     Update the current session model
   /prompt         Show the current system prompt
+  /prompt <text>  Update the current system prompt
   /history        Show the stored conversation
+  /show-config    Show model, prompt, and inference settings
+  /temperature <value>
+                  Update the current temperature
+  /top-p <value>  Update the current top-p value
+  /max-tokens <n>
+                  Update the current max tokens value
   /stream on      Enable streaming replies
   /stream off     Disable streaming replies
   /metadata on    Show metadata after replies
@@ -95,8 +103,14 @@ Commands:
   /help
   /session
   /model
+  /model <id>
   /prompt
+  /prompt <text>
   /history
+  /show-config
+  /temperature <value>
+  /top-p <value>
+  /max-tokens <n>
   /stream on
   /stream off
   /metadata on
@@ -160,6 +174,44 @@ fetch_current_session() {
   curl_json_request "${BASE_URL}/api/sessions/${SESSION_ID}"
 }
 
+build_update_payload() {
+  UPDATE_MODEL_ID="${1:-}" \
+  UPDATE_SYSTEM_PROMPT="${2:-}" \
+  UPDATE_TEMPERATURE="${3:-}" \
+  UPDATE_TOP_P="${4:-}" \
+  UPDATE_MAX_TOKENS="${5:-}" \
+  python3 - <<'PY'
+import json
+import os
+
+payload = {}
+
+model_id = os.environ.get("UPDATE_MODEL_ID", "").strip()
+system_prompt = os.environ.get("UPDATE_SYSTEM_PROMPT", "")
+temperature = os.environ.get("UPDATE_TEMPERATURE", "").strip()
+top_p = os.environ.get("UPDATE_TOP_P", "").strip()
+max_tokens = os.environ.get("UPDATE_MAX_TOKENS", "").strip()
+
+if model_id:
+    payload["modelId"] = model_id
+if system_prompt:
+    payload["systemPrompt"] = system_prompt
+
+inference_config = {}
+if temperature:
+    inference_config["temperature"] = float(temperature)
+if top_p:
+    inference_config["topP"] = float(top_p)
+if max_tokens:
+    inference_config["maxTokens"] = int(max_tokens)
+
+if inference_config:
+    payload["inferenceConfig"] = inference_config
+
+print(json.dumps(payload))
+PY
+}
+
 print_current_model() {
   local session_json
   session_json="$(fetch_current_session)" || return 1
@@ -188,6 +240,32 @@ if prompt:
     print(prompt)
 else:
     print("System prompt: (none)")
+PY
+}
+
+show_config() {
+  local session_json
+  session_json="$(fetch_current_session)" || return 1
+
+  SESSION_JSON="${session_json}" python3 - <<'PY'
+import json
+import os
+
+session = json.loads(os.environ["SESSION_JSON"])
+inference = session.get("inferenceConfig") or {}
+
+print("Model: " + str(session.get("modelId") or "(none)"))
+prompt = session.get("systemPrompt")
+if prompt:
+    print("System prompt:")
+    print(prompt)
+else:
+    print("System prompt: (none)")
+
+print("Inference config:")
+print(f"  temperature: {inference.get('temperature')}")
+print(f"  topP: {inference.get('topP')}")
+print(f"  maxTokens: {inference.get('maxTokens')}")
 PY
 }
 
@@ -319,6 +397,45 @@ reset_current_session() {
   echo "Session reset."
 }
 
+update_session_config() {
+  local model_id="${1:-}"
+  local system_prompt="${2:-}"
+  local temperature="${3:-}"
+  local top_p="${4:-}"
+  local max_tokens="${5:-}"
+  local response
+
+  response="$(
+    curl_json_request \
+      --request PATCH \
+      --header "Content-Type: application/json" \
+      --data "$(build_update_payload "${model_id}" "${system_prompt}" "${temperature}" "${top_p}" "${max_tokens}")" \
+      "${BASE_URL}/api/sessions/${SESSION_ID}"
+  )" || return 1
+
+  SESSION_JSON="${response}" python3 - <<'PY'
+import json
+import os
+
+session = json.loads(os.environ["SESSION_JSON"])
+inference = session.get("inferenceConfig") or {}
+
+print("Session updated.")
+print("Model: " + str(session.get("modelId") or "(none)"))
+prompt = session.get("systemPrompt")
+if prompt:
+    print("System prompt:")
+    print(prompt)
+else:
+    print("System prompt: (none)")
+
+print("Inference config:")
+print(f"  temperature: {inference.get('temperature')}")
+print(f"  topP: {inference.get('topP')}")
+print(f"  maxTokens: {inference.get('maxTokens')}")
+PY
+}
+
 send_non_streaming_message() {
   local response
   response="$(
@@ -364,11 +481,54 @@ while true; do
     /model)
       print_current_model || true
       ;;
+    /show-config)
+      show_config || true
+      ;;
     /prompt)
       print_current_prompt || true
       ;;
     /history)
       print_history || true
+      ;;
+    /model\ *)
+      new_model="${user_input#"/model "}"
+      if [[ -z "${new_model}" ]]; then
+        echo "Usage: /model <model-id>" >&2
+      else
+        update_session_config "${new_model}" "" "" "" "" || true
+      fi
+      ;;
+    /prompt\ *)
+      new_prompt="${user_input#"/prompt "}"
+      if [[ -z "${new_prompt}" ]]; then
+        echo "Usage: /prompt <text>" >&2
+      else
+        update_session_config "" "${new_prompt}" "" "" "" || true
+      fi
+      ;;
+    /temperature\ *)
+      new_temperature="${user_input#"/temperature "}"
+      if [[ -z "${new_temperature}" ]]; then
+        echo "Usage: /temperature <value>" >&2
+      else
+        update_session_config "" "" "${new_temperature}" "" "" || true
+      fi
+      ;;
+    /top-p\ *)
+      new_top_p="${user_input#"/top-p "}"
+      if [[ -z "${new_top_p}" ]]; then
+        echo "Usage: /top-p <value>" >&2
+      else
+        update_session_config "" "" "" "${new_top_p}" "" || true
+      fi
+      ;;
+    /max-tokens\ *)
+      new_max_tokens="${user_input#"/max-tokens "}"
+      if [[ -z "${new_max_tokens}" ]]; then
+        echo "Usage: /max-tokens <n>" >&2
+      else
+        update_session_config "" "" "" "" "${new_max_tokens}" || true
+      fi
       ;;
     "/stream on")
       STREAM_MODE="true"

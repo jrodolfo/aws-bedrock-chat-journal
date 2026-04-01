@@ -592,8 +592,9 @@ Behavior:
 - reuses `SESSION_ID` when provided
 - otherwise creates a new session automatically
 - defaults to streaming mode
-- supports `/help`, `/session`, `/model`, `/prompt`, `/history`, `/stream on`, `/stream off`, `/metadata on`, `/metadata off`, `/reset`, and `/exit`
+- supports `/help`, `/session`, `/model`, `/model <id>`, `/prompt`, `/prompt <text>`, `/history`, `/show-config`, `/temperature <value>`, `/top-p <value>`, `/max-tokens <n>`, `/stream on`, `/stream off`, `/metadata on`, `/metadata off`, `/reset`, and `/exit`
 - can hide or show response metadata during the chat loop
+- can tune the current session model, prompt, and inference settings without leaving the terminal chat
 
 ### Reset an existing session
 

@@ -44,6 +44,8 @@ class RequestScriptsSmokeTest {
         assertThat(result.stdout()).contains("/stream on");
         assertThat(result.stdout()).contains("/metadata on");
         assertThat(result.stdout()).contains("/history");
+        assertThat(result.stdout()).contains("/show-config");
+        assertThat(result.stdout()).contains("/temperature <value>");
     }
 
     @Test
