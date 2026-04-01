@@ -3,6 +3,7 @@ package net.jrodolfo.aws.bedrock.chat.journal.service;
 import java.util.ArrayList;
 import java.util.UUID;
 import net.jrodolfo.aws.bedrock.chat.journal.config.AppProperties;
+import net.jrodolfo.aws.bedrock.chat.journal.exception.BadRequestException;
 import net.jrodolfo.aws.bedrock.chat.journal.exception.ResourceNotFoundException;
 import net.jrodolfo.aws.bedrock.chat.journal.model.ChatMessage;
 import net.jrodolfo.aws.bedrock.chat.journal.model.ChatSession;
@@ -28,10 +29,12 @@ public class ChatSessionService {
     }
 
     public ChatSession createSession(CreateSessionRequest request) {
+        CreateSessionRequest payload = request != null ? request : new CreateSessionRequest();
+
         ChatSession session = new ChatSession();
         session.setSessionId(UUID.randomUUID().toString());
-        session.setModelId(resolveModelId(request));
-        session.setSystemPrompt(normalizeText(request.getSystemPrompt()));
+        session.setModelId(resolveModelId(payload));
+        session.setSystemPrompt(normalizeText(payload.getSystemPrompt()));
         session.setMessages(new ArrayList<>());
 
         return fileSessionStore.save(session);
@@ -45,7 +48,8 @@ public class ChatSessionService {
     public SendMessageResponse sendMessage(String sessionId, SendMessageRequest request) {
         ChatSession session = getSession(sessionId);
 
-        ChatMessage userMessage = ChatMessage.userText(request.getText().trim());
+        String messageText = normalizeRequiredText(request != null ? request.getText() : null, "text is required");
+        ChatMessage userMessage = ChatMessage.userText(messageText);
         session.getMessages().add(userMessage);
 
         String assistantReply = bedrockChatService.sendConversation(session);
@@ -55,6 +59,15 @@ public class ChatSessionService {
         fileSessionStore.save(session);
 
         return new SendMessageResponse(session.getSessionId(), session.getModelId(), assistantReply, assistantMessage);
+    }
+
+    private String normalizeRequiredText(String value, String message) {
+        String normalized = normalizeText(value);
+        if (!StringUtils.hasText(normalized)) {
+            throw new BadRequestException(message);
+        }
+
+        return normalized;
     }
 
     private String resolveModelId(CreateSessionRequest request) {

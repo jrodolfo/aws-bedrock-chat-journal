@@ -9,7 +9,7 @@ import net.jrodolfo.aws.bedrock.chat.journal.model.ChatSession;
 import net.jrodolfo.aws.bedrock.chat.journal.model.ContentBlock;
 import org.springframework.stereotype.Service;
 import org.springframework.util.StringUtils;
-import software.amazon.awssdk.core.exception.SdkClientException;
+import software.amazon.awssdk.core.exception.SdkException;
 import software.amazon.awssdk.services.bedrockruntime.BedrockRuntimeClient;
 import software.amazon.awssdk.services.bedrockruntime.model.ConversationRole;
 import software.amazon.awssdk.services.bedrockruntime.model.ConverseRequest;
@@ -40,7 +40,7 @@ public class BedrockChatService {
 
             ConverseResponse response = bedrockRuntimeClient.converse(requestBuilder.build());
             return extractAssistantText(response);
-        } catch (SdkClientException ex) {
+        } catch (SdkException ex) {
             throw new BedrockInvocationException("Failed to call Amazon Bedrock: " + ex.getMessage(), ex);
         }
     }
@@ -81,7 +81,9 @@ public class BedrockChatService {
     }
 
     private String extractAssistantText(ConverseResponse response) {
-        if (response.output() == null || response.output().message() == null) {
+        if (response.output() == null
+                || response.output().message() == null
+                || response.output().message().content() == null) {
             throw new BedrockInvocationException("Amazon Bedrock returned an empty response");
         }
 
