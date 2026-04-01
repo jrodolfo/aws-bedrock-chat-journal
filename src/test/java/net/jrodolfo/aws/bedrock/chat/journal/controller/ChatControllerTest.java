@@ -2,6 +2,7 @@ package net.jrodolfo.aws.bedrock.chat.journal.controller;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
 import java.util.ArrayList;
+import net.jrodolfo.aws.bedrock.chat.journal.config.RequestCorrelationFilter;
 import net.jrodolfo.aws.bedrock.chat.journal.exception.BedrockInvocationException;
 import net.jrodolfo.aws.bedrock.chat.journal.exception.GlobalExceptionHandler;
 import net.jrodolfo.aws.bedrock.chat.journal.exception.ResourceNotFoundException;
@@ -44,7 +45,17 @@ class ChatControllerTest {
     void healthEndpointReturnsOk() throws Exception {
         mockMvc.perform(get("/api/health"))
                 .andExpect(status().isOk())
+                .andExpect(org.springframework.test.web.servlet.result.MockMvcResultMatchers.header().exists(RequestCorrelationFilter.REQUEST_ID_HEADER))
                 .andExpect(jsonPath("$.status").value("OK"));
+    }
+
+    @Test
+    void healthEndpointPreservesIncomingRequestIdHeader() throws Exception {
+        mockMvc.perform(get("/api/health")
+                        .header(RequestCorrelationFilter.REQUEST_ID_HEADER, "req-123"))
+                .andExpect(status().isOk())
+                .andExpect(org.springframework.test.web.servlet.result.MockMvcResultMatchers.header()
+                        .string(RequestCorrelationFilter.REQUEST_ID_HEADER, "req-123"));
     }
 
     @Test

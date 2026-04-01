@@ -16,3 +16,11 @@ app:
     sessions-directory: data/sessions
   limits:
     max-messages-per-session: 100
+
+# Example local debugging settings:
+# logging:
+#   pattern:
+#     console: "%d{yyyy-MM-dd HH:mm:ss} %-5level [%X{requestId}] %logger{36} - %msg%n"
+#   level:
+#     net.jrodolfo.aws.bedrock.chat.journal: DEBUG
+#     software.amazon.awssdk: INFO

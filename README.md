@@ -95,6 +95,19 @@ If you want to troubleshoot locally, useful debug logging targets are:
 - `net.jrodolfo.aws.bedrock.chat.journal`
 - `software.amazon.awssdk`
 
+Example logging configuration:
+
+```yaml
+logging:
+  pattern:
+    console: "%d{yyyy-MM-dd HH:mm:ss} %-5level [%X{requestId}] %logger{36} - %msg%n"
+  level:
+    net.jrodolfo.aws.bedrock.chat.journal: DEBUG
+    software.amazon.awssdk: INFO
+```
+
+Each HTTP response includes an `X-Request-Id` header. If the client sends one, the application reuses it. Otherwise it generates one. The same ID is available to application logs through MDC as `requestId`.
+
 ## Endpoints
 
 ### Health check
@@ -124,6 +137,12 @@ Example response:
   "messageCount": 0
 }
 ```
+
+Contract note:
+
+- `POST /api/sessions` returns a session summary, not the full stored session JSON
+- `GET /api/sessions/{sessionId}` returns the full stored session JSON
+- `POST /api/sessions/{sessionId}/messages` returns the assistant reply plus the assistant message payload
 
 ### Get a session
 
@@ -204,6 +223,15 @@ Session limit exceeded:
   "details": []
 }
 ```
+
+## Operational limits
+
+- Max user message size: `4000` characters
+- Max system prompt size: `4000` characters
+- Max model ID size: `200` characters
+- Max stored messages per session: `100` by default
+- Session files are stored under `data/sessions`
+- If a Bedrock call fails, the new message exchange is not persisted to disk
 
 ## Curl collection
 
