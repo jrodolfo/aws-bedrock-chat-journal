@@ -92,10 +92,10 @@ event_error = False
 pending_text = ""
 
 def normalize_markdown(text: str) -> str:
-    text = text.replace("**", "")
-    text = text.replace("__", "")
+    text = text.replace("*", "")
+    text = text.replace("_", "")
     text = text.replace("`", "")
-    text = re.sub(r"(^|\n)\s{0,3}#{1,6}\s+", r"\1", text)
+    text = re.sub(r"(^|\n)\s{0,3}#{1,6}\s*", r"\1", text)
     return text
 
 def render_text(text: str, final: bool = False) -> None:
@@ -109,12 +109,12 @@ def render_text(text: str, final: bool = False) -> None:
             print(normalize_markdown(combined), end="", flush=True)
         return
 
-    if len(combined) <= 8:
+    if len(combined) <= 64:
         pending_text = combined
         return
 
-    safe_text = combined[:-8]
-    pending_text = combined[-8:]
+    safe_text = combined[:-64]
+    pending_text = combined[-64:]
     print(normalize_markdown(safe_text), end="", flush=True)
 
 def handle_event(event_name: str | None, payload_lines: list[str]) -> None:
