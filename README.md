@@ -46,6 +46,12 @@ app:
 
 The application uses the normal AWS default credential chain. Before calling Bedrock, make sure your local environment already has credentials and Bedrock model access configured.
 
+## Build and test
+
+```bash
+./gradlew test build
+```
+
 ## Run locally
 
 ```bash
@@ -53,12 +59,6 @@ The application uses the normal AWS default credential chain. Before calling Bed
 ```
 
 The API starts on `http://localhost:8080`.
-
-## Build and test
-
-```bash
-./gradlew test build
-```
 
 ## Endpoints
 
@@ -101,6 +101,7 @@ A small runnable curl collection is included here:
 
 [`requests/curl-examples.sh`](requests/curl-examples.sh)
 [`requests/send-message.sh`](requests/send-message.sh)
+[`requests/pretty-print-sessions.sh`](requests/pretty-print-sessions.sh)
 
 Run it:
 
@@ -179,6 +180,51 @@ Optional environment variables:
   Default: `http://localhost:8080`
 - `MESSAGE_TEXT`
   Default: `Continue the conversation.`
+
+### Pretty-print stored sessions
+
+Use this script to inspect saved session JSON files in a more readable terminal view:
+
+```bash
+./requests/pretty-print-sessions.sh
+```
+
+Show help:
+
+```bash
+./requests/pretty-print-sessions.sh --help
+```
+
+What it does:
+
+- Reads every `*.json` file under `data/sessions`
+- Prints session metadata such as `sessionId`, `modelId`, and `systemPrompt`
+- Renders conversation text with decoded line breaks
+- Cleans up common Markdown markers like `###` and `**` for easier terminal reading
+
+Optional environment variables:
+
+- `SESSIONS_DIR`
+  Default: `<repo-root>/data/sessions`
+
+Options:
+
+- `--raw`
+  Shows pretty-printed raw JSON instead of the rendered conversation view
+
+Examples:
+
+```bash
+./requests/pretty-print-sessions.sh
+```
+
+```bash
+./requests/pretty-print-sessions.sh --raw
+```
+
+```bash
+SESSIONS_DIR=data/sessions ./requests/pretty-print-sessions.sh
+```
 
 ## Project structure
 
