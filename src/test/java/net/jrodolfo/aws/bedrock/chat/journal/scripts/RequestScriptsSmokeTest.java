@@ -143,7 +143,8 @@ class RequestScriptsSmokeTest {
         ProcessResult result = runScript(Path.of("scripts/stream-message.sh"), Map.of(), "--help");
 
         assertThat(result.exitCode()).isZero();
-        assertThat(result.stdout()).contains("Prints server-sent events");
+        assertThat(result.stdout()).contains("Prints streamed assistant text as it arrives");
+        assertThat(result.stdout()).contains("--raw");
     }
 
     @Test

@@ -574,6 +574,14 @@ MESSAGE_TEXT="Explain the Amazon Bedrock Converse API using streaming." \
 ./scripts/stream-message.sh
 ```
 
+By default, the script renders only the assistant text in a readable terminal view and then prints a short completion summary.
+
+If you want to inspect the raw SSE frames instead, use:
+
+```bash
+SESSION_ID=your-session-id ./scripts/stream-message.sh --raw
+```
+
 ### Pretty-print stored sessions
 
 Use this script to inspect saved session JSON files in a more readable terminal view:
