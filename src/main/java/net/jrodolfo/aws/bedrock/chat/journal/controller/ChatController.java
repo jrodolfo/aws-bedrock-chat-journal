@@ -26,7 +26,7 @@ public class ChatController {
     }
 
     @PostMapping
-    public ResponseEntity<ChatSession> createSession(@RequestBody(required = false) CreateSessionRequest request) {
+    public ResponseEntity<ChatSession> createSession(@Valid @RequestBody(required = false) CreateSessionRequest request) {
         CreateSessionRequest payload = request != null ? request : new CreateSessionRequest();
         ChatSession session = chatSessionService.createSession(payload);
         return ResponseEntity.status(HttpStatus.CREATED).body(session);

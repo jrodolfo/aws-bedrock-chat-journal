@@ -65,6 +65,22 @@ class ChatControllerTest {
     }
 
     @Test
+    void createSessionReturnsBadRequestWhenSystemPromptIsTooLong() throws Exception {
+        String longPrompt = "a".repeat(4001);
+
+        mockMvc.perform(post("/api/sessions")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("""
+                                {
+                                  "systemPrompt": "%s"
+                                }
+                                """.formatted(longPrompt)))
+                .andExpect(status().isBadRequest())
+                .andExpect(jsonPath("$.message").value("Validation failed"))
+                .andExpect(jsonPath("$.details[0]").value("systemPrompt: systemPrompt must be at most 4000 characters"));
+    }
+
+    @Test
     void getSessionReturnsStoredSession() throws Exception {
         ChatSession session = new ChatSession("session-1", "amazon.nova-lite-v1:0", null,
                 new ArrayList<>(java.util.List.of(ChatMessage.userText("Hello"))));
@@ -122,6 +138,22 @@ class ChatControllerTest {
                 .andExpect(status().isBadRequest())
                 .andExpect(jsonPath("$.message").value("Validation failed"))
                 .andExpect(jsonPath("$.details[0]").value("text: text is required"));
+    }
+
+    @Test
+    void sendMessageReturnsBadRequestWhenTextIsTooLong() throws Exception {
+        String longText = "a".repeat(4001);
+
+        mockMvc.perform(post("/api/sessions/session-1/messages")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("""
+                                {
+                                  "text": "%s"
+                                }
+                                """.formatted(longText)))
+                .andExpect(status().isBadRequest())
+                .andExpect(jsonPath("$.message").value("Validation failed"))
+                .andExpect(jsonPath("$.details[0]").value("text: text must be at most 4000 characters"));
     }
 
     @Test

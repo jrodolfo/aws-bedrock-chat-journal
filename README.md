@@ -95,6 +95,59 @@ curl -X POST http://localhost:8080/api/sessions/<sessionId>/messages \
   }'
 ```
 
+### Example error responses
+
+Validation failure for a blank message:
+
+```bash
+curl -X POST http://localhost:8080/api/sessions/<sessionId>/messages \
+  -H "Content-Type: application/json" \
+  -d '{
+    "text": "   "
+  }'
+```
+
+Example response:
+
+```json
+{
+  "status": 400,
+  "error": "Bad Request",
+  "message": "Validation failed",
+  "details": [
+    "text: text is required"
+  ]
+}
+```
+
+Missing session:
+
+```bash
+curl http://localhost:8080/api/sessions/missing-session-id
+```
+
+Example response:
+
+```json
+{
+  "status": 404,
+  "error": "Not Found",
+  "message": "Session not found: missing-session-id",
+  "details": []
+}
+```
+
+Bedrock access or runtime failure:
+
+```json
+{
+  "status": 500,
+  "error": "Internal Server Error",
+  "message": "Failed to call Amazon Bedrock: ...",
+  "details": []
+}
+```
+
 ## Curl collection
 
 A small runnable curl collection is included here:
