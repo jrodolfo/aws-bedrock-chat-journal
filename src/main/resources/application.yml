@@ -14,3 +14,5 @@ app:
     default-model-id: amazon.nova-lite-v1:0
   storage:
     sessions-directory: data/sessions
+  limits:
+    max-messages-per-session: 100

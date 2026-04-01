@@ -126,23 +126,47 @@ class ChatSessionServiceTest {
         assertThat(storedSession.getMessages()).isEmpty();
     }
 
+    @Test
+    void sendMessageRejectsWhenSessionWouldExceedMessageLimit() {
+        ChatSessionService service = createService("Assistant reply", 2);
+        ChatSession session = service.createSession(new CreateSessionRequest());
+
+        SendMessageRequest firstRequest = new SendMessageRequest();
+        firstRequest.setText("First");
+        service.sendMessage(session.getSessionId(), firstRequest);
+
+        SendMessageRequest secondRequest = new SendMessageRequest();
+        secondRequest.setText("Second");
+
+        assertThatThrownBy(() -> service.sendMessage(session.getSessionId(), secondRequest))
+                .isInstanceOf(BadRequestException.class)
+                .hasMessage("Session has reached the maximum number of stored messages: 2");
+    }
+
     private ChatSessionService createService(String bedrockReply) {
         BedrockChatService bedrockChatService = Mockito.mock(BedrockChatService.class);
         Mockito.when(bedrockChatService.sendConversation(any())).thenReturn(bedrockReply);
-        return createService(bedrockChatService);
+        return createService(bedrockChatService, 100);
     }
 
     private ChatSessionService createService(RuntimeException bedrockException) {
         BedrockChatService bedrockChatService = Mockito.mock(BedrockChatService.class);
         Mockito.when(bedrockChatService.sendConversation(any())).thenThrow(bedrockException);
-        return createService(bedrockChatService);
+        return createService(bedrockChatService, 100);
     }
 
-    private ChatSessionService createService(BedrockChatService bedrockChatService) {
+    private ChatSessionService createService(String bedrockReply, int maxMessagesPerSession) {
+        BedrockChatService bedrockChatService = Mockito.mock(BedrockChatService.class);
+        Mockito.when(bedrockChatService.sendConversation(any())).thenReturn(bedrockReply);
+        return createService(bedrockChatService, maxMessagesPerSession);
+    }
+
+    private ChatSessionService createService(BedrockChatService bedrockChatService, int maxMessagesPerSession) {
         AppProperties appProperties = new AppProperties();
         appProperties.getAws().setDefaultModelId("amazon.nova-lite-v1:0");
         appProperties.getAws().setRegion("us-east-1");
         appProperties.getStorage().setSessionsDirectory(tempDir.resolve("sessions").toString());
+        appProperties.getLimits().setMaxMessagesPerSession(maxMessagesPerSession);
 
         FileSessionStore store = new FileSessionStore(new ObjectMapper().findAndRegisterModules(), appProperties);
         store.initializeStorage();

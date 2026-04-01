@@ -26,6 +26,7 @@ import software.amazon.awssdk.services.bedrockruntime.model.Message;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.when;
+import static org.mockito.Mockito.reset;
 
 @SpringBootTest(webEnvironment = SpringBootTest.WebEnvironment.RANDOM_PORT)
 class ChatSessionIntegrationTest {
@@ -51,6 +52,7 @@ class ChatSessionIntegrationTest {
 
     @Test
     void createAndSendMessagePersistsConversationToDisk() throws Exception {
+        reset(bedrockRuntimeClient);
         when(bedrockRuntimeClient.converse(any(ConverseRequest.class))).thenReturn(
                 ConverseResponse.builder()
                         .output(ConverseOutput.builder()
@@ -100,5 +102,48 @@ class ChatSessionIntegrationTest {
         assertThat(storedJson).contains(createdSession.getSessionId());
         assertThat(storedJson).contains("Explain Converse API");
         assertThat(storedJson).contains("Mocked Bedrock reply");
+    }
+
+    @Test
+    void sendMessageFailureReturnsServerErrorAndDoesNotPersistNewMessages() throws Exception {
+        reset(bedrockRuntimeClient);
+        when(bedrockRuntimeClient.converse(any(ConverseRequest.class)))
+                .thenThrow(software.amazon.awssdk.core.exception.SdkClientException.create("Bedrock unavailable"));
+
+        HttpHeaders headers = new HttpHeaders();
+        headers.setContentType(MediaType.APPLICATION_JSON);
+
+        ResponseEntity<ChatSession> createResponse = restTemplate.postForEntity(
+                "http://localhost:" + port + "/api/sessions",
+                new HttpEntity<>("""
+                        {
+                          "modelId": "amazon.nova-lite-v1:0",
+                          "systemPrompt": "You are a helpful AWS study assistant."
+                        }
+                        """, headers),
+                ChatSession.class
+        );
+
+        ChatSession createdSession = createResponse.getBody();
+        assertThat(createdSession).isNotNull();
+
+        ResponseEntity<String> sendResponse = restTemplate.postForEntity(
+                "http://localhost:" + port + "/api/sessions/" + createdSession.getSessionId() + "/messages",
+                new HttpEntity<>("""
+                        {
+                          "text": "This should fail"
+                        }
+                        """, headers),
+                String.class
+        );
+
+        assertThat(sendResponse.getStatusCode().value()).isEqualTo(500);
+        assertThat(sendResponse.getBody()).contains("Failed to call Amazon Bedrock");
+
+        Path sessionFile = tempDir.resolve("sessions").resolve(createdSession.getSessionId() + ".json");
+        String storedJson = Files.readString(sessionFile);
+        assertThat(storedJson).doesNotContain("This should fail");
+        assertThat(storedJson).doesNotContain("Failed to call Amazon Bedrock");
+        assertThat(storedJson).contains("\"messages\" : [ ]");
     }
 }

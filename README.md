@@ -46,6 +46,23 @@ app:
 
 The application uses the normal AWS default credential chain. Before calling Bedrock, make sure your local environment already has credentials and Bedrock model access configured.
 
+## Architecture
+
+The code follows a small, direct flow:
+
+- `controller/` exposes the REST endpoints
+- `service/` handles session lifecycle and Bedrock calls
+- `FileSessionStore` reads and writes one JSON file per session
+- `BedrockChatService` converts stored messages into AWS SDK Converse requests and extracts the assistant reply
+
+The runtime flow for `POST /api/sessions/{sessionId}/messages` is:
+
+1. Load the session JSON from disk
+2. Validate limits and append the user message in memory
+3. Send the full conversation history to Amazon Bedrock
+4. Append the assistant reply
+5. Save the updated session JSON back to disk
+
 ## Build and test
 
 ```bash
@@ -59,6 +76,24 @@ The application uses the normal AWS default credential chain. Before calling Bed
 ```
 
 The API starts on `http://localhost:8080`.
+
+## Local requirements
+
+- Java 25
+- AWS credentials available through the default AWS credential chain
+- Bedrock model access enabled for the configured model in the configured region
+
+The default configuration uses:
+
+- region: `us-east-1`
+- model: `amazon.nova-lite-v1:0`
+- sessions directory: `data/sessions`
+- max stored messages per session: `100`
+
+If you want to troubleshoot locally, useful debug logging targets are:
+
+- `net.jrodolfo.aws.bedrock.chat.journal`
+- `software.amazon.awssdk`
 
 ## Endpoints
 
@@ -144,6 +179,17 @@ Bedrock access or runtime failure:
   "status": 500,
   "error": "Internal Server Error",
   "message": "Failed to call Amazon Bedrock: ...",
+  "details": []
+}
+```
+
+Session limit exceeded:
+
+```json
+{
+  "status": 400,
+  "error": "Bad Request",
+  "message": "Session has reached the maximum number of stored messages: 100",
   "details": []
 }
 ```

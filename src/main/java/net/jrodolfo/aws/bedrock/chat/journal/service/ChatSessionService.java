@@ -47,6 +47,7 @@ public class ChatSessionService {
 
     public SendMessageResponse sendMessage(String sessionId, SendMessageRequest request) {
         ChatSession session = getSession(sessionId);
+        ensureSessionCanAcceptMoreMessages(session);
 
         String messageText = normalizeRequiredText(request != null ? request.getText() : null, "text is required");
         ChatMessage userMessage = ChatMessage.userText(messageText);
@@ -59,6 +60,15 @@ public class ChatSessionService {
         fileSessionStore.save(session);
 
         return new SendMessageResponse(session.getSessionId(), session.getModelId(), assistantReply, assistantMessage);
+    }
+
+    private void ensureSessionCanAcceptMoreMessages(ChatSession session) {
+        int existingMessages = session.getMessages() != null ? session.getMessages().size() : 0;
+        int maxMessages = appProperties.getLimits().getMaxMessagesPerSession();
+
+        if (existingMessages + 2 > maxMessages) {
+            throw new BadRequestException("Session has reached the maximum number of stored messages: " + maxMessages);
+        }
     }
 
     private String normalizeRequiredText(String value, String message) {

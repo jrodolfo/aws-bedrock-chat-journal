@@ -2,6 +2,7 @@ package net.jrodolfo.aws.bedrock.chat.journal.config;
 
 import jakarta.validation.Valid;
 import jakarta.validation.constraints.NotBlank;
+import jakarta.validation.constraints.Positive;
 import org.springframework.boot.context.properties.ConfigurationProperties;
 import org.springframework.validation.annotation.Validated;
 
@@ -14,6 +15,9 @@ public class AppProperties {
 
     @Valid
     private Storage storage = new Storage();
+
+    @Valid
+    private Limits limits = new Limits();
 
     public Aws getAws() {
         return aws;
@@ -29,6 +33,14 @@ public class AppProperties {
 
     public void setStorage(Storage storage) {
         this.storage = storage;
+    }
+
+    public Limits getLimits() {
+        return limits;
+    }
+
+    public void setLimits(Limits limits) {
+        this.limits = limits;
     }
 
     public static class Aws {
@@ -67,6 +79,20 @@ public class AppProperties {
 
         public void setSessionsDirectory(String sessionsDirectory) {
             this.sessionsDirectory = sessionsDirectory;
+        }
+    }
+
+    public static class Limits {
+
+        @Positive
+        private int maxMessagesPerSession = 100;
+
+        public int getMaxMessagesPerSession() {
+            return maxMessagesPerSession;
+        }
+
+        public void setMaxMessagesPerSession(int maxMessagesPerSession) {
+            this.maxMessagesPerSession = maxMessagesPerSession;
         }
     }
 }
