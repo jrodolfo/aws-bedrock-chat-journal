@@ -587,6 +587,7 @@ Behavior:
 - creates two temporary sessions, one for each model
 - sends the same prompt to both models
 - saves one comparison JSON report under `data/comparisons/`
+- computes a small summary showing things like faster model, lower token usage, and shorter reply
 - prints both replies and their metadata
 - deletes the temporary sessions after the comparison
 

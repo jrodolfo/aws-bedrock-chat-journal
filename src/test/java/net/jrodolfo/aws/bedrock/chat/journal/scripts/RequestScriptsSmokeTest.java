@@ -125,6 +125,15 @@ class RequestScriptsSmokeTest {
                   "createdAt": "2026-04-01T22:00:00Z",
                   "prompt": "### Explain Converse API",
                   "systemPrompt": "You are a helper.",
+                  "summary": {
+                    "fasterModel": "amazon.nova-lite-v1:0",
+                    "durationDifferenceMs": 200,
+                    "lowerTokenModel": "amazon.nova-lite-v1:0",
+                    "tokenDifference": 15,
+                    "shorterReplyModel": "amazon.nova-lite-v1:0",
+                    "longerReplyModel": "amazon.nova-pro-v1:0",
+                    "replyLengthDifference": 12
+                  },
                   "modelA": {
                     "modelId": "amazon.nova-lite-v1:0",
                     "reply": "**Fast** answer",
@@ -153,6 +162,8 @@ class RequestScriptsSmokeTest {
         assertThat(result.stdout()).contains("comparisonId: comparison-1");
         assertThat(result.stdout()).contains("prompt:");
         assertThat(result.stdout()).contains("Explain Converse API");
+        assertThat(result.stdout()).contains("summary:");
+        assertThat(result.stdout()).contains("fasterModel: amazon.nova-lite-v1:0 (200 ms faster)");
         assertThat(result.stdout()).contains("Model A");
         assertThat(result.stdout()).contains("Fast answer");
         assertThat(result.stdout()).contains("durationMs: 1000");

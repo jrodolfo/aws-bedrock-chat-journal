@@ -201,6 +201,56 @@ report = {
     },
 }
 
+def reply_length(reply: str | None) -> int:
+    return len((reply or "").strip())
+
+def summary_for_models(report: dict) -> dict:
+    model_a = report["modelA"]
+    model_b = report["modelB"]
+    metadata_a = model_a.get("metadata") or {}
+    metadata_b = model_b.get("metadata") or {}
+
+    summary = {}
+
+    duration_a = metadata_a.get("durationMs")
+    duration_b = metadata_b.get("durationMs")
+    if duration_a is not None and duration_b is not None:
+        if duration_a < duration_b:
+            summary["fasterModel"] = model_a.get("modelId")
+        elif duration_b < duration_a:
+            summary["fasterModel"] = model_b.get("modelId")
+        else:
+            summary["fasterModel"] = "tie"
+        summary["durationDifferenceMs"] = abs(duration_a - duration_b)
+
+    tokens_a = metadata_a.get("totalTokens")
+    tokens_b = metadata_b.get("totalTokens")
+    if tokens_a is not None and tokens_b is not None:
+        if tokens_a < tokens_b:
+            summary["lowerTokenModel"] = model_a.get("modelId")
+        elif tokens_b < tokens_a:
+            summary["lowerTokenModel"] = model_b.get("modelId")
+        else:
+            summary["lowerTokenModel"] = "tie"
+        summary["tokenDifference"] = abs(tokens_a - tokens_b)
+
+    length_a = reply_length(model_a.get("reply"))
+    length_b = reply_length(model_b.get("reply"))
+    if length_a < length_b:
+        summary["shorterReplyModel"] = model_a.get("modelId")
+        summary["longerReplyModel"] = model_b.get("modelId")
+    elif length_b < length_a:
+        summary["shorterReplyModel"] = model_b.get("modelId")
+        summary["longerReplyModel"] = model_a.get("modelId")
+    else:
+        summary["shorterReplyModel"] = "tie"
+        summary["longerReplyModel"] = "tie"
+    summary["replyLengthDifference"] = abs(length_a - length_b)
+
+    return summary
+
+report["summary"] = summary_for_models(report)
+
 with report_path.open("w", encoding="utf-8") as handle:
     json.dump(report, handle, indent=2)
     handle.write("\n")
@@ -218,6 +268,45 @@ echo
 RESPONSE_A="${RESPONSE_A}" RESPONSE_B="${RESPONSE_B}" MODEL_A="${MODEL_A}" MODEL_B="${MODEL_B}" python3 - <<'PY'
 import json
 import os
+
+response_a = json.loads(os.environ["RESPONSE_A"])
+response_b = json.loads(os.environ["RESPONSE_B"])
+metadata_a = response_a.get("metadata") or {}
+metadata_b = response_b.get("metadata") or {}
+
+duration_a = metadata_a.get("durationMs")
+duration_b = metadata_b.get("durationMs")
+tokens_a = metadata_a.get("totalTokens")
+tokens_b = metadata_b.get("totalTokens")
+length_a = len((response_a.get("reply") or "").strip())
+length_b = len((response_b.get("reply") or "").strip())
+
+print("Summary")
+print("-------")
+if duration_a is not None and duration_b is not None:
+    if duration_a < duration_b:
+        print(f"Faster model: {os.environ['MODEL_A']} ({abs(duration_a - duration_b)} ms faster)")
+    elif duration_b < duration_a:
+        print(f"Faster model: {os.environ['MODEL_B']} ({abs(duration_a - duration_b)} ms faster)")
+    else:
+        print("Faster model: tie")
+
+if tokens_a is not None and tokens_b is not None:
+    if tokens_a < tokens_b:
+        print(f"Lower token usage: {os.environ['MODEL_A']} ({abs(tokens_a - tokens_b)} fewer tokens)")
+    elif tokens_b < tokens_a:
+        print(f"Lower token usage: {os.environ['MODEL_B']} ({abs(tokens_a - tokens_b)} fewer tokens)")
+    else:
+        print("Lower token usage: tie")
+
+if length_a < length_b:
+    print(f"Shorter reply: {os.environ['MODEL_A']} ({abs(length_a - length_b)} chars shorter)")
+elif length_b < length_a:
+    print(f"Shorter reply: {os.environ['MODEL_B']} ({abs(length_a - length_b)} chars shorter)")
+else:
+    print("Shorter reply: tie")
+
+print()
 
 def print_model_result(label: str, model_id: str, response_text: str) -> None:
     response = json.loads(response_text)

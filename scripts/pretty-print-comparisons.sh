@@ -148,11 +148,55 @@ def print_model_result(label: str, result: dict) -> None:
     if metadata:
         print()
 
+def print_summary(summary: dict) -> None:
+    if not summary:
+        return
+
+    print("summary:")
+    faster_model = summary.get("fasterModel")
+    duration_diff = summary.get("durationDifferenceMs")
+    lower_token_model = summary.get("lowerTokenModel")
+    token_diff = summary.get("tokenDifference")
+    shorter_reply_model = summary.get("shorterReplyModel")
+    longer_reply_model = summary.get("longerReplyModel")
+    reply_length_diff = summary.get("replyLengthDifference")
+
+    if faster_model:
+        if faster_model == "tie":
+            print("  fasterModel: tie")
+        elif duration_diff is not None:
+            print(f"  fasterModel: {faster_model} ({duration_diff} ms faster)")
+        else:
+            print(f"  fasterModel: {faster_model}")
+
+    if lower_token_model:
+        if lower_token_model == "tie":
+            print("  lowerTokenModel: tie")
+        elif token_diff is not None:
+            print(f"  lowerTokenModel: {lower_token_model} ({token_diff} fewer tokens)")
+        else:
+            print(f"  lowerTokenModel: {lower_token_model}")
+
+    if shorter_reply_model:
+        if shorter_reply_model == "tie":
+            print("  shorterReplyModel: tie")
+        elif reply_length_diff is not None:
+            print(f"  shorterReplyModel: {shorter_reply_model} ({reply_length_diff} chars shorter)")
+        else:
+            print(f"  shorterReplyModel: {shorter_reply_model}")
+
+    if longer_reply_model and longer_reply_model != "tie":
+        print(f"  longerReplyModel: {longer_reply_model}")
+
 print(f"comparisonId: {comparison.get('comparisonId', '-')}")
 print(f"createdAt: {comparison.get('createdAt', '-')}")
 print("prompt:")
 print(normalize_markdown(comparison.get("prompt", "")))
 print()
+
+print_summary(comparison.get("summary") or {})
+if comparison.get("summary"):
+    print()
 
 system_prompt = comparison.get("systemPrompt")
 if system_prompt:
