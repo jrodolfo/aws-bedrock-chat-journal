@@ -49,6 +49,7 @@ class RequestScriptsSmokeTest {
         assertThat(result.stdout()).contains("/preset <name>");
         assertThat(result.stdout()).contains("exam-tutor");
         assertThat(result.stdout()).contains("Available prompt presets:");
+        assertThat(result.stdout()).contains("Conservative wording that avoids invented AWS details");
     }
 
     @Test

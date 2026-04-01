@@ -76,10 +76,10 @@ EOF
   cat <<'EOF'
 
 Available prompt presets:
-  exam-tutor
-  quiz-me
-  bedrock-accuracy
-  compare-services
+  exam-tutor        Certification-style explanations, distinctions, and tradeoffs
+  quiz-me           One question at a time, then brief grading and correction
+  bedrock-accuracy  Conservative wording that avoids invented AWS details
+  compare-services  Structured side-by-side comparisons of AWS options
 EOF
 }
 
@@ -140,10 +140,10 @@ EOF
 list_presets() {
   cat <<'EOF'
 Available prompt presets:
-  exam-tutor
-  quiz-me
-  bedrock-accuracy
-  compare-services
+  exam-tutor        Certification-style explanations, distinctions, and tradeoffs
+  quiz-me           One question at a time, then brief grading and correction
+  bedrock-accuracy  Conservative wording that avoids invented AWS details
+  compare-services  Structured side-by-side comparisons of AWS options
 EOF
 }
 
