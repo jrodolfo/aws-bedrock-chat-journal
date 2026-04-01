@@ -84,6 +84,46 @@ class RequestScriptsSmokeTest {
     }
 
     @Test
+    void prettyPrintRenderedModeShowsAssistantMetadata() throws Exception {
+        Path sessionsDir = tempDir.resolve("sessions");
+        Files.createDirectories(sessionsDir);
+        Files.writeString(sessionsDir.resolve("session-1.json"), """
+                {
+                  "sessionId": "session-1",
+                  "modelId": "amazon.nova-lite-v1:0",
+                  "messages": [
+                    {
+                      "role": "assistant",
+                      "content": [
+                        { "text": "Hello" }
+                      ],
+                      "metadata": {
+                        "requestedAt": "2026-04-01T19:10:00Z",
+                        "respondedAt": "2026-04-01T19:10:02Z",
+                        "durationMs": 2000,
+                        "totalTokens": 42,
+                        "stopReason": "end_turn"
+                      }
+                    }
+                  ]
+                }
+                """);
+
+        ProcessResult result = runScript(
+                Path.of("scripts/pretty-print-sessions.sh"),
+                Map.of("SESSIONS_DIR", sessionsDir.toString())
+        );
+
+        assertThat(result.exitCode()).isZero();
+        assertThat(result.stdout()).contains("metadata:");
+        assertThat(result.stdout()).contains("requestedAt: 2026-04-01T19:10:00Z");
+        assertThat(result.stdout()).contains("respondedAt: 2026-04-01T19:10:02Z");
+        assertThat(result.stdout()).contains("durationMs: 2000");
+        assertThat(result.stdout()).contains("totalTokens: 42");
+        assertThat(result.stdout()).contains("stopReason: end_turn");
+    }
+
+    @Test
     void listSessionsHelpWorks() throws Exception {
         ProcessResult result = runScript(Path.of("scripts/list-sessions.sh"), Map.of(), "--help");
 

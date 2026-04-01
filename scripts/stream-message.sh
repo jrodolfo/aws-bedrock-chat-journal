@@ -117,6 +117,36 @@ def render_text(text: str, final: bool = False) -> None:
     pending_text = combined[-64:]
     print(normalize_markdown(safe_text), end="", flush=True)
 
+def print_metadata_summary(metadata: dict) -> None:
+    if not metadata:
+        return
+
+    requested_at = metadata.get("requestedAt")
+    responded_at = metadata.get("respondedAt")
+    duration_ms = metadata.get("durationMs")
+    total_tokens = metadata.get("totalTokens")
+    input_tokens = metadata.get("inputTokens")
+    output_tokens = metadata.get("outputTokens")
+    stop_reason = metadata.get("stopReason")
+
+    if requested_at:
+        print(f"Requested at: {requested_at}", flush=True)
+    if responded_at:
+        print(f"Responded at: {responded_at}", flush=True)
+    if duration_ms is not None:
+        print(f"Duration: {duration_ms} ms", flush=True)
+    if total_tokens is not None:
+        print(f"Total tokens: {total_tokens}", flush=True)
+    elif input_tokens is not None or output_tokens is not None:
+        token_parts = []
+        if input_tokens is not None:
+            token_parts.append(f"input={input_tokens}")
+        if output_tokens is not None:
+            token_parts.append(f"output={output_tokens}")
+        print("Tokens: " + ", ".join(token_parts), flush=True)
+    if stop_reason:
+        print(f"Stop reason: {stop_reason}", flush=True)
+
 def handle_event(event_name: str | None, payload_lines: list[str]) -> None:
     global event_error
 
@@ -147,19 +177,7 @@ def handle_event(event_name: str | None, payload_lines: list[str]) -> None:
         print(flush=True)
         print(flush=True)
         print("Completed.", flush=True)
-        if metadata:
-            stop_reason = metadata.get("stopReason")
-            duration_ms = metadata.get("durationMs")
-            total_tokens = metadata.get("totalTokens")
-            summary_parts = []
-            if stop_reason:
-                summary_parts.append(f"stopReason={stop_reason}")
-            if duration_ms is not None:
-                summary_parts.append(f"durationMs={duration_ms}")
-            if total_tokens is not None:
-                summary_parts.append(f"totalTokens={total_tokens}")
-            if summary_parts:
-                print("Metadata: " + ", ".join(summary_parts), flush=True)
+        print_metadata_summary(metadata)
         return
 
     if event_name == "error":

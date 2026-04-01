@@ -100,6 +100,45 @@ def normalize_markdown(text: str) -> str:
 
     return "\n".join(normalized_lines)
 
+def print_metadata(metadata: dict) -> None:
+    if not metadata:
+        return
+
+    lines = []
+
+    requested_at = metadata.get("requestedAt")
+    responded_at = metadata.get("respondedAt")
+    duration_ms = metadata.get("durationMs")
+    input_tokens = metadata.get("inputTokens")
+    output_tokens = metadata.get("outputTokens")
+    total_tokens = metadata.get("totalTokens")
+    stop_reason = metadata.get("stopReason")
+
+    if requested_at:
+        lines.append(f"requestedAt: {requested_at}")
+    if responded_at:
+        lines.append(f"respondedAt: {responded_at}")
+    if duration_ms is not None:
+        lines.append(f"durationMs: {duration_ms}")
+    if total_tokens is not None:
+        lines.append(f"totalTokens: {total_tokens}")
+    elif input_tokens is not None or output_tokens is not None:
+        token_parts = []
+        if input_tokens is not None:
+            token_parts.append(f"input={input_tokens}")
+        if output_tokens is not None:
+            token_parts.append(f"output={output_tokens}")
+        lines.append("tokens: " + ", ".join(token_parts))
+    if stop_reason:
+        lines.append(f"stopReason: {stop_reason}")
+
+    if not lines:
+        return
+
+    print("metadata:")
+    for line in lines:
+        print(f"  {line}")
+
 print(f"sessionId: {session.get('sessionId', '')}")
 print(f"modelId: {session.get('modelId', '')}")
 
@@ -130,6 +169,10 @@ for index, message in enumerate(messages, start=1):
         if text is None:
             continue
         print(normalize_markdown(text))
+        print()
+
+    print_metadata(message.get("metadata") or {})
+    if message.get("metadata"):
         print()
 PY
   echo

@@ -576,6 +576,7 @@ MESSAGE_TEXT="Explain the Amazon Bedrock Converse API using streaming." \
 
 By default, the script renders only the assistant text in a readable terminal view and then prints a short completion summary.
 It also strips common Markdown markers such as heading prefixes, bold markers, and backticks while streaming.
+The completion summary prioritizes request/response timestamps, duration, and token counts when available.
 
 If you want to inspect the raw SSE frames instead, use:
 
@@ -602,6 +603,7 @@ What it does:
 - Reads every `*.json` file under `data/sessions`
 - Prints session metadata such as `sessionId`, `modelId`, and `systemPrompt`
 - Renders conversation text with decoded line breaks
+- Shows stored assistant response metadata such as timestamps, duration, and token counts when available
 - Cleans up common Markdown markers like `###` and `**` for easier terminal reading
 
 Optional environment variables:
