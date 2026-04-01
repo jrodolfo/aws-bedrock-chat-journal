@@ -544,6 +544,13 @@ Optional environment variables:
 - `MESSAGE_TEXT`
   Default: `Continue the conversation.`
 
+`send-message.sh` and `stream-message.sh` are similar in purpose because both send one message and then exit. The difference is in how the reply is delivered:
+
+- `send-message.sh` waits for the full assistant reply and prints it once at the end
+- `stream-message.sh` prints the assistant reply incrementally as Bedrock streams it back
+
+Use `send-message.sh` for quick checks and shorter replies. Use `stream-message.sh` when you want faster feedback, a more conversational feel, or you want to observe Bedrock streaming behavior directly.
+
 ### Reset an existing session
 
 Use this script when you want to clear the stored messages for a session but keep its metadata:
