@@ -88,6 +88,18 @@ The session lifecycle endpoints also let you:
 
 The API starts on `http://localhost:8080`.
 
+You can also use the helper script:
+
+```bash
+./requests/run-local.sh
+```
+
+If port `8080` is busy, override it for that run:
+
+```bash
+PORT=8081 ./requests/run-local.sh
+```
+
 ## API documentation
 
 Swagger UI is available when the application is running:
@@ -321,6 +333,7 @@ A small runnable curl collection is included here:
 [`requests/curl-examples.sh`](requests/curl-examples.sh)
 [`requests/list-sessions.sh`](requests/list-sessions.sh)
 [`requests/reset-session.sh`](requests/reset-session.sh)
+[`requests/run-local.sh`](requests/run-local.sh)
 [`requests/send-message.sh`](requests/send-message.sh)
 [`requests/pretty-print-sessions.sh`](requests/pretty-print-sessions.sh)
 
@@ -498,6 +511,7 @@ requests
 ├── list-sessions.sh
 ├── pretty-print-sessions.sh
 ├── reset-session.sh
+├── run-local.sh
 └── send-message.sh
 src/main/java/net/jrodolfo/aws/bedrock/chat/journal
 ├── Application.java
