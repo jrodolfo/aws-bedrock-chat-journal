@@ -79,7 +79,10 @@ if [[ "${OUTPUT_MODE}" == "raw" ]]; then
   run_curl
   curl_status=$?
 else
-  run_curl | python3 - <<'PY'
+  curl_stderr_file="$(mktemp)"
+  trap 'rm -f "${curl_stderr_file}"' EXIT
+
+  run_curl 2>"${curl_stderr_file}" | python3 - <<'PY'
 import json
 import sys
 
@@ -170,6 +173,9 @@ else
   fi
 
   if [[ "${curl_status}" -ne 0 ]]; then
+    if [[ -s "${curl_stderr_file}" ]]; then
+      cat "${curl_stderr_file}" >&2
+    fi
     exit "${curl_status}"
   fi
 fi
