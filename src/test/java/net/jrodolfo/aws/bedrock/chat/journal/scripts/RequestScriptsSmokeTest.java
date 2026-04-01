@@ -46,6 +46,8 @@ class RequestScriptsSmokeTest {
         assertThat(result.stdout()).contains("/history");
         assertThat(result.stdout()).contains("/show-config");
         assertThat(result.stdout()).contains("/temperature <value>");
+        assertThat(result.stdout()).contains("/preset <name>");
+        assertThat(result.stdout()).contains("exam-tutor");
     }
 
     @Test
@@ -53,10 +55,12 @@ class RequestScriptsSmokeTest {
         ProcessResult result = runScriptWithInput(
                 Path.of("scripts/chat.sh"),
                 Map.of("SESSION_ID", "session-1", "STREAM", "true"),
-                "/session\n/stream off\n/metadata off\n/help\n/exit\n"
+                "/preset\n/session\n/stream off\n/metadata off\n/help\n/exit\n"
         );
 
         assertThat(result.exitCode()).isZero();
+        assertThat(result.stdout()).contains("Available prompt presets:");
+        assertThat(result.stdout()).contains("bedrock-accuracy");
         assertThat(result.stdout()).contains("Session ID: session-1");
         assertThat(result.stdout()).contains("Mode: streaming");
         assertThat(result.stdout()).contains("Streaming disabled.");

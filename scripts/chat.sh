@@ -7,6 +7,7 @@ BASE_URL="${BASE_URL:-http://localhost:8080}"
 SESSION_ID="${SESSION_ID:-}"
 MODEL_ID="${MODEL_ID:-amazon.nova-lite-v1:0}"
 SYSTEM_PROMPT="${SYSTEM_PROMPT:-You are a helpful AWS study assistant.}"
+PROMPT_PRESET="${PROMPT_PRESET:-}"
 STREAM="${STREAM:-true}"
 SHOW_METADATA="${SHOW_METADATA:-true}"
 
@@ -36,6 +37,9 @@ Optional environment variables:
   SYSTEM_PROMPT   System prompt used when creating a new session
                   Default: You are a helpful AWS study assistant.
 
+  PROMPT_PRESET   Optional named system prompt preset
+                  Examples: exam-tutor, quiz-me, bedrock-accuracy, compare-services
+
   STREAM          true or false
                   Default: true
 
@@ -45,6 +49,8 @@ Optional environment variables:
 Commands:
   /help           Show chat commands
   /session        Show current session info
+  /preset         List available prompt presets
+  /preset <name>  Apply a prompt preset to the current session
   /model          Show the current session model
   /model <id>     Update the current session model
   /prompt         Show the current system prompt
@@ -102,6 +108,8 @@ print_chat_help() {
 Commands:
   /help
   /session
+  /preset
+  /preset <name>
   /model
   /model <id>
   /prompt
@@ -118,6 +126,44 @@ Commands:
   /reset
   /exit
 EOF
+}
+
+list_presets() {
+  cat <<'EOF'
+Available prompt presets:
+  exam-tutor
+  quiz-me
+  bedrock-accuracy
+  compare-services
+EOF
+}
+
+resolve_prompt_preset() {
+  case "$1" in
+    exam-tutor)
+      cat <<'EOF'
+You are an AWS certification study tutor focused on Amazon Bedrock and related AWS AI services. Give concise answers first, then expand only when helpful. Emphasize distinctions, tradeoffs, and likely exam traps. When comparing services, explain when to use each one and why.
+EOF
+      ;;
+    quiz-me)
+      cat <<'EOF'
+You are an AWS certification quiz coach focused on Amazon Bedrock and generative AI topics. Ask one question at a time. Wait for the user's answer. Then grade it briefly, explain what was correct or missing, and ask the next question.
+EOF
+      ;;
+    bedrock-accuracy)
+      cat <<'EOF'
+You are an AWS Bedrock study assistant. Be conservative and accuracy-focused. Do not invent AWS API details. Separate facts from assumptions. If you are uncertain, say so clearly. Prefer careful wording over confident guesses, especially for service behavior, SDK details, and limits.
+EOF
+      ;;
+    compare-services)
+      cat <<'EOF'
+You are an AWS study assistant that specializes in structured comparisons. When asked to compare services, models, or approaches, use a clear side-by-side format covering purpose, strengths, limitations, when to use each option, and common confusion points.
+EOF
+      ;;
+    *)
+      return 1
+      ;;
+  esac
 }
 
 print_session_info() {
@@ -137,7 +183,16 @@ print_session_info() {
 }
 
 build_create_payload() {
-  MODEL_ID="${MODEL_ID}" SYSTEM_PROMPT="${SYSTEM_PROMPT}" python3 - <<'PY'
+  local effective_prompt="${SYSTEM_PROMPT}"
+  if [[ -n "${PROMPT_PRESET}" ]]; then
+    effective_prompt="$(resolve_prompt_preset "${PROMPT_PRESET}")" || {
+      echo "Unknown PROMPT_PRESET: ${PROMPT_PRESET}" >&2
+      list_presets >&2
+      exit 1
+    }
+  fi
+
+  MODEL_ID="${MODEL_ID}" SYSTEM_PROMPT="${effective_prompt}" python3 - <<'PY'
 import json
 import os
 
@@ -241,6 +296,20 @@ if prompt:
 else:
     print("System prompt: (none)")
 PY
+}
+
+apply_prompt_preset() {
+  local preset_name="${1}"
+  local preset_prompt
+
+  preset_prompt="$(resolve_prompt_preset "${preset_name}")" || {
+    echo "Unknown preset: ${preset_name}" >&2
+    list_presets >&2
+    return 1
+  }
+
+  PROMPT_PRESET="${preset_name}"
+  update_session_config "" "${preset_prompt}" "" "" ""
 }
 
 show_config() {
@@ -478,6 +547,9 @@ while true; do
     /session)
       print_session_info
       ;;
+    /preset)
+      list_presets
+      ;;
     /model)
       print_current_model || true
       ;;
@@ -489,6 +561,14 @@ while true; do
       ;;
     /history)
       print_history || true
+      ;;
+    /preset\ *)
+      preset_name="${user_input#"/preset "}"
+      if [[ -z "${preset_name}" ]]; then
+        echo "Usage: /preset <name>" >&2
+      else
+        apply_prompt_preset "${preset_name}" || true
+      fi
       ;;
     /model\ *)
       new_model="${user_input#"/model "}"

@@ -565,6 +565,8 @@ Use `send-message.sh` for quick checks and shorter replies. Use `stream-message.
 
 When the backend is unavailable, the API-focused helper scripts print a short hint that points you back to `./scripts/run-local.sh`.
 
+Prompt presets are predefined system prompts with short names. Instead of typing a long study-oriented system prompt every time, you can choose a preset such as `exam-tutor` or `bedrock-accuracy` and let the script apply that system prompt to the session. This is useful for experimenting with how different prompt styles change model behavior while keeping the workflow fast and consistent.
+
 ### Chat interactively
 
 Use this script when you want to stay in a terminal chat loop instead of sending one message at a time:
@@ -587,14 +589,30 @@ SESSION_ID=your-session-id ./scripts/chat.sh
 STREAM=false SESSION_ID=your-session-id ./scripts/chat.sh
 ```
 
+```bash
+PROMPT_PRESET=exam-tutor ./scripts/chat.sh
+```
+
 Behavior:
 
 - reuses `SESSION_ID` when provided
 - otherwise creates a new session automatically
 - defaults to streaming mode
-- supports `/help`, `/session`, `/model`, `/model <id>`, `/prompt`, `/prompt <text>`, `/history`, `/show-config`, `/temperature <value>`, `/top-p <value>`, `/max-tokens <n>`, `/stream on`, `/stream off`, `/metadata on`, `/metadata off`, `/reset`, and `/exit`
+- supports `/help`, `/session`, `/preset`, `/preset <name>`, `/model`, `/model <id>`, `/prompt`, `/prompt <text>`, `/history`, `/show-config`, `/temperature <value>`, `/top-p <value>`, `/max-tokens <n>`, `/stream on`, `/stream off`, `/metadata on`, `/metadata off`, `/reset`, and `/exit`
 - can hide or show response metadata during the chat loop
 - can tune the current session model, prompt, and inference settings without leaving the terminal chat
+- can apply built-in prompt presets for different study modes
+
+Built-in prompt presets:
+
+- `exam-tutor`
+  Focuses on certification-style explanations, distinctions, and tradeoffs.
+- `quiz-me`
+  Asks one study question at a time, waits for your answer, then grades it.
+- `bedrock-accuracy`
+  Uses more conservative wording, separates facts from assumptions, and avoids invented AWS details.
+- `compare-services`
+  Uses a structured comparison style for AWS services, models, or approaches.
 
 ### Reset an existing session
 
