@@ -14,7 +14,7 @@ import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Service;
 
 @Service
-public class FileSessionStore {
+public class FileSessionStore implements SessionStore {
 
     private static final Logger log = LoggerFactory.getLogger(FileSessionStore.class);
 
@@ -36,6 +36,7 @@ public class FileSessionStore {
         }
     }
 
+    @Override
     public ChatSession save(ChatSession session) {
         Path sessionFile = getSessionFile(session.getSessionId());
 
@@ -49,6 +50,7 @@ public class FileSessionStore {
         }
     }
 
+    @Override
     public Optional<ChatSession> load(String sessionId) {
         Path sessionFile = getSessionFile(sessionId);
         if (!Files.exists(sessionFile)) {

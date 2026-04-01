@@ -233,6 +233,11 @@ Session limit exceeded:
 - Session files are stored under `data/sessions`
 - If a Bedrock call fails, the new message exchange is not persisted to disk
 
+## Notes
+
+- `ChatSessionService` depends on a `SessionStore` abstraction, with `FileSessionStore` as the default implementation
+- This keeps the local file-based design simple now while leaving room for other storage implementations later
+
 ## Curl collection
 
 A small runnable curl collection is included here:

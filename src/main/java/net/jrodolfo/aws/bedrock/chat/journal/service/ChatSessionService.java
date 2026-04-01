@@ -20,14 +20,14 @@ public class ChatSessionService {
 
     private static final Logger log = LoggerFactory.getLogger(ChatSessionService.class);
 
-    private final FileSessionStore fileSessionStore;
+    private final SessionStore sessionStore;
     private final BedrockChatService bedrockChatService;
     private final AppProperties appProperties;
 
-    public ChatSessionService(FileSessionStore fileSessionStore,
+    public ChatSessionService(SessionStore sessionStore,
                               BedrockChatService bedrockChatService,
                               AppProperties appProperties) {
-        this.fileSessionStore = fileSessionStore;
+        this.sessionStore = sessionStore;
         this.bedrockChatService = bedrockChatService;
         this.appProperties = appProperties;
     }
@@ -45,11 +45,11 @@ public class ChatSessionService {
                 session.getSessionId(),
                 session.getModelId(),
                 session.getSystemPrompt() != null);
-        return fileSessionStore.save(session);
+        return sessionStore.save(session);
     }
 
     public ChatSession getSession(String sessionId) {
-        return fileSessionStore.load(sessionId)
+        return sessionStore.load(sessionId)
                 .orElseThrow(() -> new ResourceNotFoundException("Session not found: " + sessionId));
     }
 
@@ -65,7 +65,7 @@ public class ChatSessionService {
         ChatMessage assistantMessage = ChatMessage.assistantText(assistantReply);
         session.getMessages().add(assistantMessage);
 
-        fileSessionStore.save(session);
+        sessionStore.save(session);
         log.debug("Updated session sessionId={}, modelId={}, messageCount={}",
                 session.getSessionId(),
                 session.getModelId(),
