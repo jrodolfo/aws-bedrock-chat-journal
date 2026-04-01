@@ -575,6 +575,7 @@ MESSAGE_TEXT="Explain the Amazon Bedrock Converse API using streaming." \
 ```
 
 By default, the script renders only the assistant text in a readable terminal view and then prints a short completion summary.
+It also strips common Markdown markers such as heading prefixes, bold markers, and backticks while streaming.
 
 If you want to inspect the raw SSE frames instead, use:
 

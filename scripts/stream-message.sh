@@ -82,12 +82,40 @@ else
   BASE_URL="${BASE_URL}" SESSION_ID="${SESSION_ID}" MESSAGE_TEXT="${MESSAGE_TEXT}" python3 - <<'PY'
 import json
 import os
+import re
 import subprocess
 import sys
 
 current_event = None
 data_lines = []
 event_error = False
+pending_text = ""
+
+def normalize_markdown(text: str) -> str:
+    text = text.replace("**", "")
+    text = text.replace("__", "")
+    text = text.replace("`", "")
+    text = re.sub(r"(^|\n)\s{0,3}#{1,6}\s+", r"\1", text)
+    return text
+
+def render_text(text: str, final: bool = False) -> None:
+    global pending_text
+
+    combined = pending_text + text
+
+    if final:
+        pending_text = ""
+        if combined:
+            print(normalize_markdown(combined), end="", flush=True)
+        return
+
+    if len(combined) <= 8:
+        pending_text = combined
+        return
+
+    safe_text = combined[:-8]
+    pending_text = combined[-8:]
+    print(normalize_markdown(safe_text), end="", flush=True)
 
 def handle_event(event_name: str | None, payload_lines: list[str]) -> None:
     global event_error
@@ -109,10 +137,11 @@ def handle_event(event_name: str | None, payload_lines: list[str]) -> None:
 
     if event_name == "chunk":
         text = payload.get("text", "")
-        print(text, end="", flush=True)
+        render_text(text)
         return
 
     if event_name == "complete":
+        render_text("", final=True)
         response = payload.get("response", {})
         metadata = response.get("metadata", {})
         print(flush=True)
