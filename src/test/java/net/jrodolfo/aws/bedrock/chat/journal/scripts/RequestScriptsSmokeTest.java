@@ -34,9 +34,12 @@ class RequestScriptsSmokeTest {
         assertThat(result.stdout()).contains("Creates two temporary sessions");
         assertThat(result.stdout()).contains("MODEL_A");
         assertThat(result.stdout()).contains("MODEL_B");
+        assertThat(result.stdout()).contains("PROMPT_PRESET");
+        assertThat(result.stdout()).contains("PROMPT_PRESET_A");
         assertThat(result.stdout()).contains("SYSTEM_PROMPT_A");
         assertThat(result.stdout()).contains("TEMPERATURE_A");
         assertThat(result.stdout()).contains("Inference means the generation settings");
+        assertThat(result.stdout()).contains("Prompt preset precedence");
     }
 
     @Test
@@ -225,6 +228,8 @@ class RequestScriptsSmokeTest {
                   "comparisonId": "comparison-1",
                   "createdAt": "2026-04-01T22:00:00Z",
                   "prompt": "### Explain Converse API",
+                  "promptPresetA": "exam-tutor",
+                  "promptPresetB": "bedrock-accuracy",
                   "systemPromptA": "You are concise.",
                   "systemPromptB": "You are detailed.",
                   "inferenceConfigA": {
@@ -276,6 +281,8 @@ class RequestScriptsSmokeTest {
         assertThat(result.stdout()).contains("prompt:");
         assertThat(result.stdout()).contains("Explain Converse API");
         assertThat(result.stdout()).contains("setup:");
+        assertThat(result.stdout()).contains("promptPreset: exam-tutor");
+        assertThat(result.stdout()).contains("promptPreset: bedrock-accuracy");
         assertThat(result.stdout()).contains("systemPrompt: You are concise.");
         assertThat(result.stdout()).contains("systemPrompt: You are detailed.");
         assertThat(result.stdout()).contains("inference: temperature=0.2, topP=0.8, maxTokens=256");

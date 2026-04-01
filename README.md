@@ -595,6 +595,27 @@ MESSAGE_TEXT="Explain how Converse differs from InvokeModel." \
 ./scripts/compare-models.sh
 ```
 
+You can also use the same named prompt preset idea from `chat.sh`:
+
+```bash
+MODEL_A=amazon.nova-lite-v1:0 \
+MODEL_B=amazon.nova-pro-v1:0 \
+PROMPT_PRESET=exam-tutor \
+MESSAGE_TEXT="Explain how Converse differs from InvokeModel." \
+./scripts/compare-models.sh
+```
+
+Or mix presets side by side:
+
+```bash
+MODEL_A=amazon.nova-lite-v1:0 \
+MODEL_B=amazon.nova-pro-v1:0 \
+PROMPT_PRESET_A=exam-tutor \
+PROMPT_PRESET_B=bedrock-accuracy \
+MESSAGE_TEXT="Explain guardrails in Amazon Bedrock." \
+./scripts/compare-models.sh
+```
+
 In this comparison tooling, `inference` means the generation settings that shape the reply. In practice, that means values such as:
 
 - `temperature` for randomness
@@ -603,6 +624,8 @@ In this comparison tooling, `inference` means the generation settings that shape
 
 The script supports shared and per-side settings:
 
+- `PROMPT_PRESET` for one shared named prompt preset
+- `PROMPT_PRESET_A` and `PROMPT_PRESET_B` for side-specific preset overrides
 - `SYSTEM_PROMPT` for one shared prompt
 - `SYSTEM_PROMPT_A` and `SYSTEM_PROMPT_B` for side-specific prompts
 - `TEMPERATURE_A` and `TEMPERATURE_B`
@@ -610,12 +633,31 @@ The script supports shared and per-side settings:
 - `MAX_TOKENS_A` and `MAX_TOKENS_B`
 - `SUMMARY_MODEL` if you want a different model to write the semantic key-differences summary
 
+Prompt precedence is:
+
+1. `SYSTEM_PROMPT_A` or `SYSTEM_PROMPT_B`
+2. `PROMPT_PRESET_A` or `PROMPT_PRESET_B`
+3. shared `PROMPT_PRESET`
+4. shared `SYSTEM_PROMPT`
+
+Available prompt presets:
+
+- `exam-tutor`
+  Certification-style explanations, distinctions, and tradeoffs
+- `quiz-me`
+  One question at a time, then brief grading and correction
+- `bedrock-accuracy`
+  Conservative wording that avoids invented AWS details
+- `compare-services`
+  Structured side-by-side comparisons of AWS options
+
 Behavior:
 
 - creates two temporary sessions, one for each model
 - sends the same prompt to both models
 - saves one comparison JSON report under `data/comparisons/`
 - records the exact per-side setup, including prompt and inference overrides
+- records preset names when presets were used
 - computes a small summary showing things like faster model, lower token usage, and shorter reply
 - optionally adds a Bedrock-generated semantic summary of the key differences between the two replies
 - prints both replies and their metadata
@@ -659,6 +701,7 @@ Rendered comparison output includes:
 
 - the original prompt
 - per-side prompt and inference setup when present
+- per-side prompt preset names when present
 - the structured summary
 - the optional semantic key-differences summary
 - both model replies and their metadata

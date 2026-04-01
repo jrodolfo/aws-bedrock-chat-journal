@@ -217,25 +217,31 @@ def print_summary(summary: dict) -> None:
             print(f"    {line}")
 
 def print_setup(comparison: dict) -> None:
+    prompt_preset_a = comparison.get("promptPresetA")
+    prompt_preset_b = comparison.get("promptPresetB")
     system_prompt_a = comparison.get("systemPromptA")
     system_prompt_b = comparison.get("systemPromptB")
     inference_a = comparison.get("inferenceConfigA")
     inference_b = comparison.get("inferenceConfigB")
     legacy_system_prompt = comparison.get("systemPrompt")
 
-    if not any([system_prompt_a, system_prompt_b, inference_a, inference_b, legacy_system_prompt]):
+    if not any([prompt_preset_a, prompt_preset_b, system_prompt_a, system_prompt_b, inference_a, inference_b, legacy_system_prompt]):
         return
 
     print("setup:")
 
-    if system_prompt_a or inference_a:
+    if prompt_preset_a or system_prompt_a or inference_a:
         print("  Model A")
+        if prompt_preset_a:
+            print(f"    promptPreset: {prompt_preset_a}")
         if system_prompt_a:
             print(f"    systemPrompt: {normalize_markdown(system_prompt_a)}")
         print(f"    inference: {format_inference_config(inference_a)}")
 
-    if system_prompt_b or inference_b:
+    if prompt_preset_b or system_prompt_b or inference_b:
         print("  Model B")
+        if prompt_preset_b:
+            print(f"    promptPreset: {prompt_preset_b}")
         if system_prompt_b:
             print(f"    systemPrompt: {normalize_markdown(system_prompt_b)}")
         print(f"    inference: {format_inference_config(inference_b)}")
@@ -251,6 +257,8 @@ print()
 
 print_setup(comparison)
 if any([
+    comparison.get("promptPresetA"),
+    comparison.get("promptPresetB"),
     comparison.get("systemPromptA"),
     comparison.get("systemPromptB"),
     comparison.get("inferenceConfigA"),

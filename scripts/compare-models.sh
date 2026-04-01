@@ -10,8 +10,11 @@ MODEL_A="${MODEL_A:-}"
 MODEL_B="${MODEL_B:-}"
 SUMMARY_MODEL="${SUMMARY_MODEL:-}"
 SYSTEM_PROMPT="${SYSTEM_PROMPT:-You are a helpful AWS study assistant.}"
-SYSTEM_PROMPT_A="${SYSTEM_PROMPT_A:-${SYSTEM_PROMPT}}"
-SYSTEM_PROMPT_B="${SYSTEM_PROMPT_B:-${SYSTEM_PROMPT}}"
+PROMPT_PRESET="${PROMPT_PRESET:-}"
+PROMPT_PRESET_A="${PROMPT_PRESET_A:-}"
+PROMPT_PRESET_B="${PROMPT_PRESET_B:-}"
+SYSTEM_PROMPT_A="${SYSTEM_PROMPT_A:-}"
+SYSTEM_PROMPT_B="${SYSTEM_PROMPT_B:-}"
 TEMPERATURE_A="${TEMPERATURE_A:-}"
 TEMPERATURE_B="${TEMPERATURE_B:-}"
 TOP_P_A="${TOP_P_A:-}"
@@ -49,11 +52,20 @@ Optional environment variables:
   SYSTEM_PROMPT   Shared system prompt used when side-specific prompts are not set
                   Default: You are a helpful AWS study assistant.
 
-  SYSTEM_PROMPT_A System prompt override for model A
-                  Default: SYSTEM_PROMPT
+  PROMPT_PRESET   Shared named prompt preset
+                  Examples: exam-tutor, quiz-me, bedrock-accuracy, compare-services
 
-  SYSTEM_PROMPT_B System prompt override for model B
-                  Default: SYSTEM_PROMPT
+  PROMPT_PRESET_A Prompt preset override for model A
+                  Default: PROMPT_PRESET
+
+  PROMPT_PRESET_B Prompt preset override for model B
+                  Default: PROMPT_PRESET
+
+  SYSTEM_PROMPT_A Explicit system prompt override for model A
+                  Overrides PROMPT_PRESET_A and PROMPT_PRESET
+
+  SYSTEM_PROMPT_B Explicit system prompt override for model B
+                  Overrides PROMPT_PRESET_B and PROMPT_PRESET
 
   TEMPERATURE_A   Inference override for model A temperature
   TEMPERATURE_B   Inference override for model B temperature
@@ -75,6 +87,21 @@ Optional environment variables:
 
 Options:
   -h, --help      Show this help message
+EOF
+
+  cat <<'EOF'
+
+Prompt preset precedence:
+  1. SYSTEM_PROMPT_A or SYSTEM_PROMPT_B
+  2. PROMPT_PRESET_A or PROMPT_PRESET_B
+  3. shared PROMPT_PRESET
+  4. shared SYSTEM_PROMPT
+
+Available prompt presets:
+  exam-tutor        Certification-style explanations, distinctions, and tradeoffs
+  quiz-me           One question at a time, then brief grading and correction
+  bedrock-accuracy  Conservative wording that avoids invented AWS details
+  compare-services  Structured side-by-side comparisons of AWS options
 EOF
 }
 
@@ -118,6 +145,106 @@ run_curl() {
     print_request_failure_hint
     return 1
   fi
+}
+
+resolve_prompt_preset() {
+  case "$1" in
+    exam-tutor)
+      cat <<'EOF'
+You are an AWS certification study tutor focused on Amazon Bedrock and related AWS AI services. Give concise answers first, then expand only when helpful. Emphasize distinctions, tradeoffs, and likely exam traps. When comparing services, explain when to use each one and why.
+EOF
+      ;;
+    quiz-me)
+      cat <<'EOF'
+You are an AWS certification quiz coach focused on Amazon Bedrock and generative AI topics. Ask one question at a time. Wait for the user's answer. Then grade it briefly, explain what was correct or missing, and ask the next question.
+EOF
+      ;;
+    bedrock-accuracy)
+      cat <<'EOF'
+You are an AWS Bedrock study assistant. Be conservative and accuracy-focused. Do not invent AWS API details. Separate facts from assumptions. If you are uncertain, say so clearly. Prefer careful wording over confident guesses, especially for service behavior, SDK details, and limits.
+EOF
+      ;;
+    compare-services)
+      cat <<'EOF'
+You are an AWS study assistant that specializes in structured comparisons. When asked to compare services, models, or approaches, use a clear side-by-side format covering purpose, strengths, limitations, when to use each option, and common confusion points.
+EOF
+      ;;
+    *)
+      return 1
+      ;;
+  esac
+}
+
+resolve_prompt_side() {
+  local side="$1"
+  local shared_preset="${PROMPT_PRESET}"
+  local side_preset=""
+  local explicit_prompt=""
+
+  case "${side}" in
+    A)
+      side_preset="${PROMPT_PRESET_A}"
+      explicit_prompt="${SYSTEM_PROMPT_A}"
+      ;;
+    B)
+      side_preset="${PROMPT_PRESET_B}"
+      explicit_prompt="${SYSTEM_PROMPT_B}"
+      ;;
+    *)
+      echo "Unknown comparison side: ${side}" >&2
+      exit 1
+      ;;
+  esac
+
+  if [[ -n "${explicit_prompt}" ]]; then
+    printf '%s\n' "${explicit_prompt}"
+    return 0
+  fi
+
+  if [[ -n "${side_preset}" ]]; then
+    resolve_prompt_preset "${side_preset}" || {
+      echo "Unknown prompt preset for side ${side}: ${side_preset}" >&2
+      usage >&2
+      exit 1
+    }
+    return 0
+  fi
+
+  if [[ -n "${shared_preset}" ]]; then
+    resolve_prompt_preset "${shared_preset}" || {
+      echo "Unknown shared PROMPT_PRESET: ${shared_preset}" >&2
+      usage >&2
+      exit 1
+    }
+    return 0
+  fi
+
+  printf '%s\n' "${SYSTEM_PROMPT}"
+}
+
+resolve_preset_name_side() {
+  local side="$1"
+
+  case "${side}" in
+    A)
+      if [[ -n "${SYSTEM_PROMPT_A}" ]]; then
+        printf '%s' ""
+      elif [[ -n "${PROMPT_PRESET_A}" ]]; then
+        printf '%s' "${PROMPT_PRESET_A}"
+      else
+        printf '%s' "${PROMPT_PRESET}"
+      fi
+      ;;
+    B)
+      if [[ -n "${SYSTEM_PROMPT_B}" ]]; then
+        printf '%s' ""
+      elif [[ -n "${PROMPT_PRESET_B}" ]]; then
+        printf '%s' "${PROMPT_PRESET_B}"
+      else
+        printf '%s' "${PROMPT_PRESET}"
+      fi
+      ;;
+  esac
 }
 
 build_create_payload() {
@@ -228,8 +355,13 @@ if [[ -z "${SUMMARY_MODEL}" ]]; then
   SUMMARY_MODEL="${MODEL_B}"
 fi
 
-SESSION_A="$(create_temp_session "${MODEL_A}" "${SYSTEM_PROMPT_A}" "${TEMPERATURE_A}" "${TOP_P_A}" "${MAX_TOKENS_A}")"
-SESSION_B="$(create_temp_session "${MODEL_B}" "${SYSTEM_PROMPT_B}" "${TEMPERATURE_B}" "${TOP_P_B}" "${MAX_TOKENS_B}")"
+EFFECTIVE_PROMPT_A="$(resolve_prompt_side "A")"
+EFFECTIVE_PROMPT_B="$(resolve_prompt_side "B")"
+EFFECTIVE_PRESET_A="$(resolve_preset_name_side "A")"
+EFFECTIVE_PRESET_B="$(resolve_preset_name_side "B")"
+
+SESSION_A="$(create_temp_session "${MODEL_A}" "${EFFECTIVE_PROMPT_A}" "${TEMPERATURE_A}" "${TOP_P_A}" "${MAX_TOKENS_A}")"
+SESSION_B="$(create_temp_session "${MODEL_B}" "${EFFECTIVE_PROMPT_B}" "${TEMPERATURE_B}" "${TOP_P_B}" "${MAX_TOKENS_B}")"
 
 RESPONSE_A="$(send_message "${SESSION_A}")"
 RESPONSE_B="$(send_message "${SESSION_B}")"
@@ -306,7 +438,8 @@ fi
 
 REPORT_PATH="$(
   MODEL_A="${MODEL_A}" MODEL_B="${MODEL_B}" SUMMARY_MODEL="${SUMMARY_MODEL}" \
-  SYSTEM_PROMPT_A="${SYSTEM_PROMPT_A}" SYSTEM_PROMPT_B="${SYSTEM_PROMPT_B}" \
+  SYSTEM_PROMPT_A="${EFFECTIVE_PROMPT_A}" SYSTEM_PROMPT_B="${EFFECTIVE_PROMPT_B}" \
+  PROMPT_PRESET_A="${EFFECTIVE_PRESET_A}" PROMPT_PRESET_B="${EFFECTIVE_PRESET_B}" \
   TEMPERATURE_A="${TEMPERATURE_A}" TEMPERATURE_B="${TEMPERATURE_B}" \
   TOP_P_A="${TOP_P_A}" TOP_P_B="${TOP_P_B}" \
   MAX_TOKENS_A="${MAX_TOKENS_A}" MAX_TOKENS_B="${MAX_TOKENS_B}" \
@@ -338,6 +471,11 @@ report = {
         **json.loads(os.environ["RESPONSE_B"]),
     },
 }
+
+if os.environ.get("PROMPT_PRESET_A"):
+    report["promptPresetA"] = os.environ["PROMPT_PRESET_A"]
+if os.environ.get("PROMPT_PRESET_B"):
+    report["promptPresetB"] = os.environ["PROMPT_PRESET_B"]
 
 def parse_inference(prefix: str) -> dict:
     inference = {}
@@ -431,7 +569,8 @@ echo "Prompt:"
 echo "${MESSAGE_TEXT}"
 echo
 
-SYSTEM_PROMPT_A="${SYSTEM_PROMPT_A}" SYSTEM_PROMPT_B="${SYSTEM_PROMPT_B}" \
+SYSTEM_PROMPT_A="${EFFECTIVE_PROMPT_A}" SYSTEM_PROMPT_B="${EFFECTIVE_PROMPT_B}" \
+PROMPT_PRESET_A="${EFFECTIVE_PRESET_A}" PROMPT_PRESET_B="${EFFECTIVE_PRESET_B}" \
 TEMPERATURE_A="${TEMPERATURE_A}" TEMPERATURE_B="${TEMPERATURE_B}" \
 TOP_P_A="${TOP_P_A}" TOP_P_B="${TOP_P_B}" \
 MAX_TOKENS_A="${MAX_TOKENS_A}" MAX_TOKENS_B="${MAX_TOKENS_B}" \
@@ -455,6 +594,9 @@ length_b = len((response_b.get("reply") or "").strip())
 def print_setup(label: str, model_id: str, prompt: str, suffix: str) -> None:
     print(f"{label} setup")
     print(f"  modelId: {model_id}")
+    preset_name = os.environ.get(f"PROMPT_PRESET_{suffix}")
+    if preset_name:
+        print(f"  promptPreset: {preset_name}")
     print(f"  systemPrompt: {prompt}")
 
     parts = []
