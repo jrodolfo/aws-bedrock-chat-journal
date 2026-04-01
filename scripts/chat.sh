@@ -72,6 +72,15 @@ Commands:
 Options:
   -h, --help      Show this help message
 EOF
+
+  cat <<'EOF'
+
+Available prompt presets:
+  exam-tutor
+  quiz-me
+  bedrock-accuracy
+  compare-services
+EOF
 }
 
 if [[ "${1:-}" == "-h" || "${1:-}" == "--help" ]]; then

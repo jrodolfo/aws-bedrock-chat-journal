@@ -48,6 +48,7 @@ class RequestScriptsSmokeTest {
         assertThat(result.stdout()).contains("/temperature <value>");
         assertThat(result.stdout()).contains("/preset <name>");
         assertThat(result.stdout()).contains("exam-tutor");
+        assertThat(result.stdout()).contains("Available prompt presets:");
     }
 
     @Test
