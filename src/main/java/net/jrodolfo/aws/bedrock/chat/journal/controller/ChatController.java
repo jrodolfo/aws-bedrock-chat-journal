@@ -3,6 +3,7 @@ package net.jrodolfo.aws.bedrock.chat.journal.controller;
 import jakarta.validation.Valid;
 import net.jrodolfo.aws.bedrock.chat.journal.model.ChatSession;
 import net.jrodolfo.aws.bedrock.chat.journal.model.CreateSessionRequest;
+import net.jrodolfo.aws.bedrock.chat.journal.model.CreateSessionResponse;
 import net.jrodolfo.aws.bedrock.chat.journal.model.SendMessageRequest;
 import net.jrodolfo.aws.bedrock.chat.journal.model.SendMessageResponse;
 import net.jrodolfo.aws.bedrock.chat.journal.service.ChatSessionService;
@@ -26,10 +27,16 @@ public class ChatController {
     }
 
     @PostMapping
-    public ResponseEntity<ChatSession> createSession(@Valid @RequestBody(required = false) CreateSessionRequest request) {
+    public ResponseEntity<CreateSessionResponse> createSession(@Valid @RequestBody(required = false) CreateSessionRequest request) {
         CreateSessionRequest payload = request != null ? request : new CreateSessionRequest();
         ChatSession session = chatSessionService.createSession(payload);
-        return ResponseEntity.status(HttpStatus.CREATED).body(session);
+        CreateSessionResponse response = new CreateSessionResponse(
+                session.getSessionId(),
+                session.getModelId(),
+                session.getSystemPrompt(),
+                session.getMessages() != null ? session.getMessages().size() : 0
+        );
+        return ResponseEntity.status(HttpStatus.CREATED).body(response);
     }
 
     @GetMapping("/{sessionId}")

@@ -10,11 +10,15 @@ import net.jrodolfo.aws.bedrock.chat.journal.model.ChatSession;
 import net.jrodolfo.aws.bedrock.chat.journal.model.CreateSessionRequest;
 import net.jrodolfo.aws.bedrock.chat.journal.model.SendMessageRequest;
 import net.jrodolfo.aws.bedrock.chat.journal.model.SendMessageResponse;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Service;
 import org.springframework.util.StringUtils;
 
 @Service
 public class ChatSessionService {
+
+    private static final Logger log = LoggerFactory.getLogger(ChatSessionService.class);
 
     private final FileSessionStore fileSessionStore;
     private final BedrockChatService bedrockChatService;
@@ -37,6 +41,10 @@ public class ChatSessionService {
         session.setSystemPrompt(normalizeText(payload.getSystemPrompt()));
         session.setMessages(new ArrayList<>());
 
+        log.debug("Creating session sessionId={}, modelId={}, hasSystemPrompt={}",
+                session.getSessionId(),
+                session.getModelId(),
+                session.getSystemPrompt() != null);
         return fileSessionStore.save(session);
     }
 
@@ -58,6 +66,10 @@ public class ChatSessionService {
         session.getMessages().add(assistantMessage);
 
         fileSessionStore.save(session);
+        log.debug("Updated session sessionId={}, modelId={}, messageCount={}",
+                session.getSessionId(),
+                session.getModelId(),
+                session.getMessages().size());
 
         return new SendMessageResponse(session.getSessionId(), session.getModelId(), assistantReply, assistantMessage);
     }
@@ -67,6 +79,10 @@ public class ChatSessionService {
         int maxMessages = appProperties.getLimits().getMaxMessagesPerSession();
 
         if (existingMessages + 2 > maxMessages) {
+            log.debug("Rejecting session update for sessionId={} because messageCount={} would exceed maxMessages={}",
+                    session.getSessionId(),
+                    existingMessages,
+                    maxMessages);
             throw new BadRequestException("Session has reached the maximum number of stored messages: " + maxMessages);
         }
     }

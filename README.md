@@ -114,6 +114,17 @@ curl -X POST http://localhost:8080/api/sessions \
   }'
 ```
 
+Example response:
+
+```json
+{
+  "sessionId": "your-session-id",
+  "modelId": "amazon.nova-lite-v1:0",
+  "systemPrompt": "You are a helpful AWS study assistant.",
+  "messageCount": 0
+}
+```
+
 ### Get a session
 
 ```bash
@@ -199,6 +210,7 @@ Session limit exceeded:
 A small runnable curl collection is included here:
 
 [`requests/curl-examples.sh`](requests/curl-examples.sh)
+[`requests/list-sessions.sh`](requests/list-sessions.sh)
 [`requests/send-message.sh`](requests/send-message.sh)
 [`requests/pretty-print-sessions.sh`](requests/pretty-print-sessions.sh)
 
@@ -252,6 +264,32 @@ SYSTEM_PROMPT="You are an AWS certification coach." \
 MESSAGE_TEXT="Give me 3 exam-focused Bedrock Converse API tips." \
 ./requests/curl-examples.sh
 ```
+
+### List stored sessions
+
+Use this script to get a quick overview of saved sessions before inspecting or continuing one:
+
+```bash
+./requests/list-sessions.sh
+```
+
+Show help:
+
+```bash
+./requests/list-sessions.sh --help
+```
+
+What it does:
+
+- Reads every `*.json` file under `data/sessions`
+- Prints the session file name
+- Prints `sessionId`, `modelId`, and message count
+- Prints a short `systemPrompt` preview
+
+Optional environment variables:
+
+- `SESSIONS_DIR`
+  Default: `<repo-root>/data/sessions`
 
 ### Continue an existing session
 
@@ -333,6 +371,7 @@ data
     └── .gitkeep
 requests
 ├── curl-examples.sh
+├── list-sessions.sh
 ├── pretty-print-sessions.sh
 └── send-message.sh
 src/main/java/net/jrodolfo/aws/bedrock/chat/journal

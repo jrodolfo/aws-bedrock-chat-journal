@@ -9,10 +9,14 @@ import java.util.Optional;
 import net.jrodolfo.aws.bedrock.chat.journal.config.AppProperties;
 import net.jrodolfo.aws.bedrock.chat.journal.exception.SessionStorageException;
 import net.jrodolfo.aws.bedrock.chat.journal.model.ChatSession;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Service;
 
 @Service
 public class FileSessionStore {
+
+    private static final Logger log = LoggerFactory.getLogger(FileSessionStore.class);
 
     private final ObjectMapper objectMapper;
     private final Path sessionsDirectory;
@@ -26,6 +30,7 @@ public class FileSessionStore {
     public void initializeStorage() {
         try {
             Files.createDirectories(sessionsDirectory);
+            log.debug("Initialized session storage directory at {}", sessionsDirectory.toAbsolutePath());
         } catch (IOException ex) {
             throw new SessionStorageException("Failed to create session storage directory: " + sessionsDirectory, ex);
         }
@@ -37,6 +42,7 @@ public class FileSessionStore {
         try {
             Files.createDirectories(sessionsDirectory);
             objectMapper.writerWithDefaultPrettyPrinter().writeValue(sessionFile.toFile(), session);
+            log.debug("Saved session {} to {}", session.getSessionId(), sessionFile.toAbsolutePath());
             return session;
         } catch (IOException ex) {
             throw new SessionStorageException("Failed to save session: " + session.getSessionId(), ex);
@@ -46,11 +52,17 @@ public class FileSessionStore {
     public Optional<ChatSession> load(String sessionId) {
         Path sessionFile = getSessionFile(sessionId);
         if (!Files.exists(sessionFile)) {
+            log.debug("Session file not found for sessionId {} at {}", sessionId, sessionFile.toAbsolutePath());
             return Optional.empty();
         }
 
         try {
-            return Optional.of(objectMapper.readValue(sessionFile.toFile(), ChatSession.class));
+            ChatSession session = objectMapper.readValue(sessionFile.toFile(), ChatSession.class);
+            log.debug("Loaded session {} with {} messages from {}",
+                    sessionId,
+                    session.getMessages() != null ? session.getMessages().size() : 0,
+                    sessionFile.toAbsolutePath());
+            return Optional.of(session);
         } catch (IOException ex) {
             throw new SessionStorageException("Failed to read session: " + sessionId, ex);
         }

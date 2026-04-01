@@ -3,6 +3,7 @@ package net.jrodolfo.aws.bedrock.chat.journal;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import net.jrodolfo.aws.bedrock.chat.journal.model.ChatSession;
+import net.jrodolfo.aws.bedrock.chat.journal.model.CreateSessionResponse;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.io.TempDir;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -67,7 +68,7 @@ class ChatSessionIntegrationTest {
         HttpHeaders headers = new HttpHeaders();
         headers.setContentType(MediaType.APPLICATION_JSON);
 
-        ResponseEntity<ChatSession> createResponse = restTemplate.postForEntity(
+        ResponseEntity<CreateSessionResponse> createResponse = restTemplate.postForEntity(
                 "http://localhost:" + port + "/api/sessions",
                 new HttpEntity<>("""
                         {
@@ -75,12 +76,13 @@ class ChatSessionIntegrationTest {
                           "systemPrompt": "You are a helpful AWS study assistant."
                         }
                         """, headers),
-                ChatSession.class
+                CreateSessionResponse.class
         );
 
         assertThat(createResponse.getStatusCode().is2xxSuccessful()).isTrue();
-        ChatSession createdSession = createResponse.getBody();
+        CreateSessionResponse createdSession = createResponse.getBody();
         assertThat(createdSession).isNotNull();
+        assertThat(createdSession.getMessageCount()).isZero();
 
         ResponseEntity<String> sendResponse = restTemplate.postForEntity(
                 "http://localhost:" + port + "/api/sessions/" + createdSession.getSessionId() + "/messages",
@@ -113,7 +115,7 @@ class ChatSessionIntegrationTest {
         HttpHeaders headers = new HttpHeaders();
         headers.setContentType(MediaType.APPLICATION_JSON);
 
-        ResponseEntity<ChatSession> createResponse = restTemplate.postForEntity(
+        ResponseEntity<CreateSessionResponse> createResponse = restTemplate.postForEntity(
                 "http://localhost:" + port + "/api/sessions",
                 new HttpEntity<>("""
                         {
@@ -121,10 +123,10 @@ class ChatSessionIntegrationTest {
                           "systemPrompt": "You are a helpful AWS study assistant."
                         }
                         """, headers),
-                ChatSession.class
+                CreateSessionResponse.class
         );
 
-        ChatSession createdSession = createResponse.getBody();
+        CreateSessionResponse createdSession = createResponse.getBody();
         assertThat(createdSession).isNotNull();
 
         ResponseEntity<String> sendResponse = restTemplate.postForEntity(

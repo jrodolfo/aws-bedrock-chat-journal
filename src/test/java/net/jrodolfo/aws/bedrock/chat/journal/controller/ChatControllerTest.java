@@ -8,6 +8,7 @@ import net.jrodolfo.aws.bedrock.chat.journal.exception.ResourceNotFoundException
 import net.jrodolfo.aws.bedrock.chat.journal.model.ChatMessage;
 import net.jrodolfo.aws.bedrock.chat.journal.model.ChatSession;
 import net.jrodolfo.aws.bedrock.chat.journal.model.CreateSessionRequest;
+import net.jrodolfo.aws.bedrock.chat.journal.model.CreateSessionResponse;
 import net.jrodolfo.aws.bedrock.chat.journal.model.SendMessageResponse;
 import net.jrodolfo.aws.bedrock.chat.journal.service.ChatSessionService;
 import org.junit.jupiter.api.Test;
@@ -61,7 +62,9 @@ class ChatControllerTest {
                                 """))
                 .andExpect(status().isCreated())
                 .andExpect(jsonPath("$.sessionId").value("session-1"))
-                .andExpect(jsonPath("$.modelId").value("amazon.nova-lite-v1:0"));
+                .andExpect(jsonPath("$.modelId").value("amazon.nova-lite-v1:0"))
+                .andExpect(jsonPath("$.systemPrompt").value("You are a tutor."))
+                .andExpect(jsonPath("$.messageCount").value(0));
     }
 
     @Test

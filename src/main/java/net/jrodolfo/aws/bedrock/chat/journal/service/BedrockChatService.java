@@ -7,6 +7,8 @@ import net.jrodolfo.aws.bedrock.chat.journal.exception.BedrockInvocationExceptio
 import net.jrodolfo.aws.bedrock.chat.journal.model.ChatMessage;
 import net.jrodolfo.aws.bedrock.chat.journal.model.ChatSession;
 import net.jrodolfo.aws.bedrock.chat.journal.model.ContentBlock;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Service;
 import org.springframework.util.StringUtils;
 import software.amazon.awssdk.core.exception.SdkException;
@@ -20,6 +22,8 @@ import software.amazon.awssdk.services.bedrockruntime.model.SystemContentBlock;
 @Service
 public class BedrockChatService {
 
+    private static final Logger log = LoggerFactory.getLogger(BedrockChatService.class);
+
     private final BedrockRuntimeClient bedrockRuntimeClient;
 
     public BedrockChatService(BedrockRuntimeClient bedrockRuntimeClient) {
@@ -28,6 +32,12 @@ public class BedrockChatService {
 
     public String sendConversation(ChatSession session) {
         try {
+            int messageCount = session.getMessages() != null ? session.getMessages().size() : 0;
+            log.debug("Sending conversation to Bedrock for sessionId={}, modelId={}, messageCount={}",
+                    session.getSessionId(),
+                    session.getModelId(),
+                    messageCount);
+
             ConverseRequest.Builder requestBuilder = ConverseRequest.builder()
                     .modelId(session.getModelId())
                     .messages(toBedrockMessages(session.getMessages()));
@@ -39,8 +49,17 @@ public class BedrockChatService {
             }
 
             ConverseResponse response = bedrockRuntimeClient.converse(requestBuilder.build());
-            return extractAssistantText(response);
+            String assistantReply = extractAssistantText(response);
+            log.debug("Received Bedrock reply for sessionId={}, modelId={}, replyLength={}",
+                    session.getSessionId(),
+                    session.getModelId(),
+                    assistantReply.length());
+            return assistantReply;
         } catch (SdkException ex) {
+            log.warn("Bedrock invocation failed for sessionId={}, modelId={}: {}",
+                    session.getSessionId(),
+                    session.getModelId(),
+                    ex.getMessage());
             throw new BedrockInvocationException("Failed to call Amazon Bedrock: " + ex.getMessage(), ex);
         }
     }
