@@ -254,6 +254,62 @@ class RequestScriptsSmokeTest {
     }
 
     @Test
+    void deleteAllSessionsHelpWorks() throws Exception {
+        ProcessResult result = runScript(Path.of("scripts/delete-all-sessions.sh"), Map.of(), "--help");
+
+        assertThat(result.exitCode()).isZero();
+        assertThat(result.stdout()).contains("Deletes those session files entirely");
+        assertThat(result.stdout()).contains("--yes");
+    }
+
+    @Test
+    void deleteAllSessionsAbortsWithoutDeleteConfirmation() throws Exception {
+        Path sessionsDir = tempDir.resolve("sessions");
+        Files.createDirectories(sessionsDir);
+        Path sessionFile = sessionsDir.resolve("session-1.json");
+        Files.writeString(sessionFile, """
+                {
+                  "sessionId": "session-1",
+                  "messages": []
+                }
+                """);
+
+        ProcessResult result = runScriptWithInput(Path.of("scripts/delete-all-sessions.sh"), Map.of("SESSIONS_DIR", sessionsDir.toString()), "no\n");
+
+        assertThat(result.exitCode()).isZero();
+        assertThat(result.stdout()).contains("Type 'delete' to continue:");
+        assertThat(result.stdout()).contains("Aborted. No session files were deleted.");
+        assertThat(sessionFile).exists();
+    }
+
+    @Test
+    void deleteAllSessionsRemovesFilesWithYesFlag() throws Exception {
+        Path sessionsDir = tempDir.resolve("sessions");
+        Files.createDirectories(sessionsDir);
+        Path sessionOne = sessionsDir.resolve("session-1.json");
+        Path sessionTwo = sessionsDir.resolve("session-2.json");
+        Files.writeString(sessionOne, """
+                {
+                  "sessionId": "session-1",
+                  "messages": []
+                }
+                """);
+        Files.writeString(sessionTwo, """
+                {
+                  "sessionId": "session-2",
+                  "messages": []
+                }
+                """);
+
+        ProcessResult result = runScriptWithInput(Path.of("scripts/delete-all-sessions.sh"), Map.of("SESSIONS_DIR", sessionsDir.toString()), "", "--yes");
+
+        assertThat(result.exitCode()).isZero();
+        assertThat(result.stdout()).contains("Deleted 2 session file(s).");
+        assertThat(sessionOne).doesNotExist();
+        assertThat(sessionTwo).doesNotExist();
+    }
+
+    @Test
     void streamMessageHelpWorks() throws Exception {
         ProcessResult result = runScript(Path.of("scripts/stream-message.sh"), Map.of(), "--help");
 

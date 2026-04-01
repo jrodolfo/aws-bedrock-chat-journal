@@ -583,6 +583,31 @@ Optional environment variables:
 - `SESSIONS_DIR`
   Default: `<repo-root>/data/sessions`
 
+### Delete all sessions
+
+Use this script when you want to remove every saved session JSON file entirely:
+
+```bash
+./scripts/delete-all-sessions.sh --help
+```
+
+Interactive example:
+
+```bash
+./scripts/delete-all-sessions.sh
+```
+
+Non-interactive example:
+
+```bash
+./scripts/delete-all-sessions.sh --yes
+```
+
+Optional environment variables:
+
+- `SESSIONS_DIR`
+  Default: `<repo-root>/data/sessions`
+
 ### Stream a reply from an existing session
 
 Use this script when you want to see assistant text chunks as Bedrock streams them back:
@@ -663,6 +688,7 @@ data
     └── .gitkeep
 scripts
 ├── curl-examples.sh
+├── delete-all-sessions.sh
 ├── list-sessions.sh
 ├── pretty-print-sessions.sh
 ├── reset-all-sessions.sh
