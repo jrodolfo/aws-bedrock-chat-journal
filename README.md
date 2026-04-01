@@ -592,6 +592,38 @@ Behavior:
 
 This keeps your normal session history clean while still preserving the useful comparison artifact.
 
+### List saved comparisons
+
+Use this script when you want to see which comparison reports are stored under `data/comparisons`:
+
+```bash
+./scripts/list-comparisons.sh --help
+```
+
+Example:
+
+```bash
+./scripts/list-comparisons.sh
+```
+
+### Pretty-print saved comparisons
+
+Use this script when you want to inspect saved comparison reports in a more readable terminal view:
+
+```bash
+./scripts/pretty-print-comparisons.sh --help
+```
+
+Examples:
+
+```bash
+./scripts/pretty-print-comparisons.sh
+```
+
+```bash
+./scripts/pretty-print-comparisons.sh --raw
+```
+
 Prompt presets are predefined system prompts with short names. Instead of typing a long study-oriented system prompt every time, you can choose a preset such as `exam-tutor` or `bedrock-accuracy` and let the script apply that system prompt to the session. This is useful for experimenting with how different prompt styles change model behavior while keeping the workflow fast and consistent.
 
 ### Chat interactively
@@ -791,7 +823,9 @@ scripts
 ├── compare-models.sh
 ├── curl-examples.sh
 ├── delete-all-sessions.sh
+├── list-comparisons.sh
 ├── list-sessions.sh
+├── pretty-print-comparisons.sh
 ├── pretty-print-sessions.sh
 ├── reset-all-sessions.sh
 ├── reset-session.sh

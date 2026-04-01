@@ -70,6 +70,99 @@ class RequestScriptsSmokeTest {
     }
 
     @Test
+    void listComparisonsHelpWorks() throws Exception {
+        ProcessResult result = runScript(Path.of("scripts/list-comparisons.sh"), Map.of(), "--help");
+
+        assertThat(result.exitCode()).isZero();
+        assertThat(result.stdout()).contains("Lists saved comparison reports");
+    }
+
+    @Test
+    void listComparisonsReadsCustomDirectory() throws Exception {
+        Path comparisonsDir = tempDir.resolve("comparisons");
+        Files.createDirectories(comparisonsDir);
+        Files.writeString(comparisonsDir.resolve("comparison-1.json"), """
+                {
+                  "comparisonId": "comparison-1",
+                  "createdAt": "2026-04-01T22:00:00Z",
+                  "prompt": "Explain Converse API",
+                  "modelA": {
+                    "modelId": "amazon.nova-lite-v1:0"
+                  },
+                  "modelB": {
+                    "modelId": "amazon.nova-pro-v1:0"
+                  }
+                }
+                """);
+
+        ProcessResult result = runScript(
+                Path.of("scripts/list-comparisons.sh"),
+                Map.of("COMPARISONS_DIR", comparisonsDir.toString())
+        );
+
+        assertThat(result.exitCode()).isZero();
+        assertThat(result.stdout()).contains("file: comparison-1.json");
+        assertThat(result.stdout()).contains("comparisonId: comparison-1");
+        assertThat(result.stdout()).contains("modelA: amazon.nova-lite-v1:0");
+        assertThat(result.stdout()).contains("modelB: amazon.nova-pro-v1:0");
+    }
+
+    @Test
+    void prettyPrintComparisonsHelpWorks() throws Exception {
+        ProcessResult result = runScript(Path.of("scripts/pretty-print-comparisons.sh"), Map.of(), "--help");
+
+        assertThat(result.exitCode()).isZero();
+        assertThat(result.stdout()).contains("--raw");
+    }
+
+    @Test
+    void prettyPrintComparisonsRenderedModeShowsComparisonData() throws Exception {
+        Path comparisonsDir = tempDir.resolve("comparisons");
+        Files.createDirectories(comparisonsDir);
+        Files.writeString(comparisonsDir.resolve("comparison-1.json"), """
+                {
+                  "comparisonId": "comparison-1",
+                  "createdAt": "2026-04-01T22:00:00Z",
+                  "prompt": "### Explain Converse API",
+                  "systemPrompt": "You are a helper.",
+                  "modelA": {
+                    "modelId": "amazon.nova-lite-v1:0",
+                    "reply": "**Fast** answer",
+                    "metadata": {
+                      "durationMs": 1000,
+                      "totalTokens": 25
+                    }
+                  },
+                  "modelB": {
+                    "modelId": "amazon.nova-pro-v1:0",
+                    "reply": "Detailed answer",
+                    "metadata": {
+                      "durationMs": 1200,
+                      "totalTokens": 40
+                    }
+                  }
+                }
+                """);
+
+        ProcessResult result = runScript(
+                Path.of("scripts/pretty-print-comparisons.sh"),
+                Map.of("COMPARISONS_DIR", comparisonsDir.toString())
+        );
+
+        assertThat(result.exitCode()).isZero();
+        assertThat(result.stdout()).contains("comparisonId: comparison-1");
+        assertThat(result.stdout()).contains("prompt:");
+        assertThat(result.stdout()).contains("Explain Converse API");
+        assertThat(result.stdout()).contains("Model A");
+        assertThat(result.stdout()).contains("Fast answer");
+        assertThat(result.stdout()).contains("durationMs: 1000");
+        assertThat(result.stdout()).contains("Model B");
+        assertThat(result.stdout()).contains("Detailed answer");
+        assertThat(result.stdout()).doesNotContain("###");
+        assertThat(result.stdout()).doesNotContain("**");
+    }
+
+    @Test
     void buildAndTestHelpWorks() throws Exception {
         ProcessResult result = runScript(Path.of("scripts/build-and-test.sh"), Map.of(), "--help");
 
