@@ -11,9 +11,9 @@ OUTPUT_MODE="rendered"
 usage() {
   cat <<EOF
 Usage:
-  ./requests/pretty-print-sessions.sh
-  ./requests/pretty-print-sessions.sh --raw
-  SESSIONS_DIR=data/sessions ./requests/pretty-print-sessions.sh
+  ./scripts/pretty-print-sessions.sh
+  ./scripts/pretty-print-sessions.sh --raw
+  SESSIONS_DIR=data/sessions ./scripts/pretty-print-sessions.sh
 
 What it does:
   Prints every JSON session file found in the sessions directory.

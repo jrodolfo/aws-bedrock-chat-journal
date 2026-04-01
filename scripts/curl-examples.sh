@@ -10,10 +10,10 @@ MESSAGE_TEXT="${MESSAGE_TEXT:-Explain the Amazon Bedrock Converse API in simple 
 usage() {
   cat <<EOF
 Usage:
-  ./requests/curl-examples.sh
-  BASE_URL=http://localhost:8080 ./requests/curl-examples.sh
-  MODEL_ID=amazon.nova-lite-v1:0 SYSTEM_PROMPT="You are an AWS tutor." ./requests/curl-examples.sh
-  MESSAGE_TEXT="What is prompt management?" ./requests/curl-examples.sh
+  ./scripts/curl-examples.sh
+  BASE_URL=http://localhost:8080 ./scripts/curl-examples.sh
+  MODEL_ID=amazon.nova-lite-v1:0 SYSTEM_PROMPT="You are an AWS tutor." ./scripts/curl-examples.sh
+  MESSAGE_TEXT="What is prompt management?" ./scripts/curl-examples.sh
 
 What it does:
   1. Calls GET /api/health

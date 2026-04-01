@@ -10,8 +10,8 @@ SESSIONS_DIR="${SESSIONS_DIR:-${DEFAULT_SESSIONS_DIR}}"
 usage() {
   cat <<EOF
 Usage:
-  ./requests/list-sessions.sh
-  SESSIONS_DIR=data/sessions ./requests/list-sessions.sh
+  ./scripts/list-sessions.sh
+  SESSIONS_DIR=data/sessions ./scripts/list-sessions.sh
 
 What it does:
   Lists stored session files with sessionId, modelId, message count, and a short system prompt preview.

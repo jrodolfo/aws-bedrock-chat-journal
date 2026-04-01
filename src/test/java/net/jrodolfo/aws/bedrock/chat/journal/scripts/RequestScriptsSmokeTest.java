@@ -1,4 +1,4 @@
-package net.jrodolfo.aws.bedrock.chat.journal.requests;
+package net.jrodolfo.aws.bedrock.chat.journal.scripts;
 
 import java.io.IOException;
 import java.nio.file.Files;
@@ -19,7 +19,7 @@ class RequestScriptsSmokeTest {
 
     @Test
     void curlExamplesHelpWorks() throws Exception {
-        ProcessResult result = runScript(Path.of("requests/curl-examples.sh"), Map.of(), "--help");
+        ProcessResult result = runScript(Path.of("scripts/curl-examples.sh"), Map.of(), "--help");
 
         assertThat(result.exitCode()).isZero();
         assertThat(result.stdout()).contains("Usage:");
@@ -28,7 +28,7 @@ class RequestScriptsSmokeTest {
 
     @Test
     void sendMessageHelpWorks() throws Exception {
-        ProcessResult result = runScript(Path.of("requests/send-message.sh"), Map.of(), "--help");
+        ProcessResult result = runScript(Path.of("scripts/send-message.sh"), Map.of(), "--help");
 
         assertThat(result.exitCode()).isZero();
         assertThat(result.stdout()).contains("SESSION_ID=<session-id>");
@@ -36,7 +36,7 @@ class RequestScriptsSmokeTest {
 
     @Test
     void sendMessageRequiresSessionId() throws Exception {
-        ProcessResult result = runScript(Path.of("requests/send-message.sh"), Map.of());
+        ProcessResult result = runScript(Path.of("scripts/send-message.sh"), Map.of());
 
         assertThat(result.exitCode()).isNotZero();
         assertThat(result.stderr()).contains("SESSION_ID is required.");
@@ -44,7 +44,7 @@ class RequestScriptsSmokeTest {
 
     @Test
     void prettyPrintHelpWorks() throws Exception {
-        ProcessResult result = runScript(Path.of("requests/pretty-print-sessions.sh"), Map.of(), "--help");
+        ProcessResult result = runScript(Path.of("scripts/pretty-print-sessions.sh"), Map.of(), "--help");
 
         assertThat(result.exitCode()).isZero();
         assertThat(result.stdout()).contains("--raw");
@@ -71,7 +71,7 @@ class RequestScriptsSmokeTest {
                 """);
 
         ProcessResult result = runScript(
-                Path.of("requests/pretty-print-sessions.sh"),
+                Path.of("scripts/pretty-print-sessions.sh"),
                 Map.of("SESSIONS_DIR", sessionsDir.toString())
         );
 
@@ -85,7 +85,7 @@ class RequestScriptsSmokeTest {
 
     @Test
     void listSessionsHelpWorks() throws Exception {
-        ProcessResult result = runScript(Path.of("requests/list-sessions.sh"), Map.of(), "--help");
+        ProcessResult result = runScript(Path.of("scripts/list-sessions.sh"), Map.of(), "--help");
 
         assertThat(result.exitCode()).isZero();
         assertThat(result.stdout()).contains("Lists stored session files");
@@ -112,7 +112,7 @@ class RequestScriptsSmokeTest {
                 """);
 
         ProcessResult result = runScript(
-                Path.of("requests/list-sessions.sh"),
+                Path.of("scripts/list-sessions.sh"),
                 Map.of("SESSIONS_DIR", sessionsDir.toString())
         );
 
@@ -124,7 +124,7 @@ class RequestScriptsSmokeTest {
 
     @Test
     void resetSessionHelpWorks() throws Exception {
-        ProcessResult result = runScript(Path.of("requests/reset-session.sh"), Map.of(), "--help");
+        ProcessResult result = runScript(Path.of("scripts/reset-session.sh"), Map.of(), "--help");
 
         assertThat(result.exitCode()).isZero();
         assertThat(result.stdout()).contains("Resets the message history");
@@ -132,7 +132,7 @@ class RequestScriptsSmokeTest {
 
     @Test
     void resetSessionRequiresSessionId() throws Exception {
-        ProcessResult result = runScript(Path.of("requests/reset-session.sh"), Map.of());
+        ProcessResult result = runScript(Path.of("scripts/reset-session.sh"), Map.of());
 
         assertThat(result.exitCode()).isNotZero();
         assertThat(result.stderr()).contains("SESSION_ID is required.");

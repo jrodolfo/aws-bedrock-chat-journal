@@ -91,13 +91,13 @@ The API starts on `http://localhost:8080`.
 You can also use the helper script:
 
 ```bash
-./requests/run-local.sh
+./scripts/run-local.sh
 ```
 
 If port `8080` is busy, override it for that run:
 
 ```bash
-PORT=8081 ./requests/run-local.sh
+PORT=8081 ./scripts/run-local.sh
 ```
 
 ## API documentation
@@ -330,17 +330,17 @@ Session limit exceeded:
 
 A small runnable curl collection is included here:
 
-[`requests/curl-examples.sh`](requests/curl-examples.sh)
-[`requests/list-sessions.sh`](requests/list-sessions.sh)
-[`requests/reset-session.sh`](requests/reset-session.sh)
-[`requests/run-local.sh`](requests/run-local.sh)
-[`requests/send-message.sh`](requests/send-message.sh)
-[`requests/pretty-print-sessions.sh`](requests/pretty-print-sessions.sh)
+[`scripts/curl-examples.sh`](scripts/curl-examples.sh)
+[`scripts/list-sessions.sh`](scripts/list-sessions.sh)
+[`scripts/reset-session.sh`](scripts/reset-session.sh)
+[`scripts/run-local.sh`](scripts/run-local.sh)
+[`scripts/send-message.sh`](scripts/send-message.sh)
+[`scripts/pretty-print-sessions.sh`](scripts/pretty-print-sessions.sh)
 
 Run it:
 
 ```bash
-./requests/curl-examples.sh
+./scripts/curl-examples.sh
 ```
 
 ### Usage
@@ -348,7 +348,7 @@ Run it:
 Show the built-in help:
 
 ```bash
-./requests/curl-examples.sh --help
+./scripts/curl-examples.sh --help
 ```
 
 What the script does:
@@ -379,13 +379,13 @@ Supported environment variables:
 Examples:
 
 ```bash
-BASE_URL=http://localhost:8080 MODEL_ID=amazon.nova-lite-v1:0 ./requests/curl-examples.sh
+BASE_URL=http://localhost:8080 MODEL_ID=amazon.nova-lite-v1:0 ./scripts/curl-examples.sh
 ```
 
 ```bash
 SYSTEM_PROMPT="You are an AWS certification coach." \
 MESSAGE_TEXT="Give me 3 exam-focused Bedrock Converse API tips." \
-./requests/curl-examples.sh
+./scripts/curl-examples.sh
 ```
 
 ### List stored sessions
@@ -393,13 +393,13 @@ MESSAGE_TEXT="Give me 3 exam-focused Bedrock Converse API tips." \
 Use this script to get a quick overview of saved sessions before inspecting or continuing one:
 
 ```bash
-./requests/list-sessions.sh
+./scripts/list-sessions.sh
 ```
 
 Show help:
 
 ```bash
-./requests/list-sessions.sh --help
+./scripts/list-sessions.sh --help
 ```
 
 What it does:
@@ -419,7 +419,7 @@ Optional environment variables:
 Use this script when you already have a `sessionId` and want to send another message:
 
 ```bash
-./requests/send-message.sh --help
+./scripts/send-message.sh --help
 ```
 
 Example:
@@ -427,7 +427,7 @@ Example:
 ```bash
 SESSION_ID=your-session-id \
 MESSAGE_TEXT="Continue the previous explanation and compare Converse with InvokeModel." \
-./requests/send-message.sh
+./scripts/send-message.sh
 ```
 
 Required environment variables:
@@ -446,13 +446,13 @@ Optional environment variables:
 Use this script when you want to clear the stored messages for a session but keep its metadata:
 
 ```bash
-./requests/reset-session.sh --help
+./scripts/reset-session.sh --help
 ```
 
 Example:
 
 ```bash
-SESSION_ID=your-session-id ./requests/reset-session.sh
+SESSION_ID=your-session-id ./scripts/reset-session.sh
 ```
 
 ### Pretty-print stored sessions
@@ -460,13 +460,13 @@ SESSION_ID=your-session-id ./requests/reset-session.sh
 Use this script to inspect saved session JSON files in a more readable terminal view:
 
 ```bash
-./requests/pretty-print-sessions.sh
+./scripts/pretty-print-sessions.sh
 ```
 
 Show help:
 
 ```bash
-./requests/pretty-print-sessions.sh --help
+./scripts/pretty-print-sessions.sh --help
 ```
 
 What it does:
@@ -489,15 +489,15 @@ Options:
 Examples:
 
 ```bash
-./requests/pretty-print-sessions.sh
+./scripts/pretty-print-sessions.sh
 ```
 
 ```bash
-./requests/pretty-print-sessions.sh --raw
+./scripts/pretty-print-sessions.sh --raw
 ```
 
 ```bash
-SESSIONS_DIR=data/sessions ./requests/pretty-print-sessions.sh
+SESSIONS_DIR=data/sessions ./scripts/pretty-print-sessions.sh
 ```
 
 ## Project structure
@@ -506,7 +506,7 @@ SESSIONS_DIR=data/sessions ./requests/pretty-print-sessions.sh
 data
 └── sessions
     └── .gitkeep
-requests
+scripts
 ├── curl-examples.sh
 ├── list-sessions.sh
 ├── pretty-print-sessions.sh

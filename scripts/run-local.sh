@@ -9,8 +9,8 @@ PORT="${PORT:-8080}"
 usage() {
   cat <<EOF
 Usage:
-  ./requests/run-local.sh
-  PORT=8081 ./requests/run-local.sh
+  ./scripts/run-local.sh
+  PORT=8081 ./scripts/run-local.sh
 
 What it does:
   Starts the Spring Boot application with Gradle using the selected local port.

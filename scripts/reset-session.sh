@@ -8,8 +8,8 @@ SESSION_ID="${SESSION_ID:-}"
 usage() {
   cat <<EOF
 Usage:
-  SESSION_ID=<session-id> ./requests/reset-session.sh
-  BASE_URL=http://localhost:8080 SESSION_ID=<session-id> ./requests/reset-session.sh
+  SESSION_ID=<session-id> ./scripts/reset-session.sh
+  BASE_URL=http://localhost:8080 SESSION_ID=<session-id> ./scripts/reset-session.sh
 
 What it does:
   1. Resets the message history for an existing session
