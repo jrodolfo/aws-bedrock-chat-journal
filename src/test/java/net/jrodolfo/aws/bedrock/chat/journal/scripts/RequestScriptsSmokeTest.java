@@ -27,6 +27,31 @@ class RequestScriptsSmokeTest {
     }
 
     @Test
+    void chatHelpWorks() throws Exception {
+        ProcessResult result = runScript(Path.of("scripts/chat.sh"), Map.of(), "--help");
+
+        assertThat(result.exitCode()).isZero();
+        assertThat(result.stdout()).contains("Opens an interactive terminal chat loop");
+        assertThat(result.stdout()).contains("/stream on");
+    }
+
+    @Test
+    void chatInteractiveCommandsWorkWithExistingSession() throws Exception {
+        ProcessResult result = runScriptWithInput(
+                Path.of("scripts/chat.sh"),
+                Map.of("SESSION_ID", "session-1", "STREAM", "true"),
+                "/session\n/stream off\n/help\n/exit\n"
+        );
+
+        assertThat(result.exitCode()).isZero();
+        assertThat(result.stdout()).contains("Session ID: session-1");
+        assertThat(result.stdout()).contains("Mode: streaming");
+        assertThat(result.stdout()).contains("Streaming disabled.");
+        assertThat(result.stdout()).contains("Commands:");
+        assertThat(result.stdout()).contains("Goodbye.");
+    }
+
+    @Test
     void sendMessageHelpWorks() throws Exception {
         ProcessResult result = runScript(Path.of("scripts/send-message.sh"), Map.of(), "--help");
 

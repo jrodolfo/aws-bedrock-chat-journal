@@ -551,6 +551,35 @@ Optional environment variables:
 
 Use `send-message.sh` for quick checks and shorter replies. Use `stream-message.sh` when you want faster feedback, a more conversational feel, or you want to observe Bedrock streaming behavior directly.
 
+### Chat interactively
+
+Use this script when you want to stay in a terminal chat loop instead of sending one message at a time:
+
+```bash
+./scripts/chat.sh --help
+```
+
+Examples:
+
+```bash
+./scripts/chat.sh
+```
+
+```bash
+SESSION_ID=your-session-id ./scripts/chat.sh
+```
+
+```bash
+STREAM=false SESSION_ID=your-session-id ./scripts/chat.sh
+```
+
+Behavior:
+
+- reuses `SESSION_ID` when provided
+- otherwise creates a new session automatically
+- defaults to streaming mode
+- supports `/help`, `/session`, `/stream on`, `/stream off`, `/reset`, and `/exit`
+
 ### Reset an existing session
 
 Use this script when you want to clear the stored messages for a session but keep its metadata:
@@ -694,6 +723,7 @@ data
 └── sessions
     └── .gitkeep
 scripts
+├── chat.sh
 ├── curl-examples.sh
 ├── delete-all-sessions.sh
 ├── list-sessions.sh
