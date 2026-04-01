@@ -1,10 +1,17 @@
 package net.jrodolfo.aws.bedrock.chat.journal.model;
 
+import io.swagger.v3.oas.annotations.media.Schema;
+
+@Schema(description = "Response returned after a message is sent and the assistant reply is stored.")
 public class SendMessageResponse {
 
+    @Schema(description = "Session identifier.")
     private String sessionId;
+    @Schema(description = "Bedrock model used for the reply.")
     private String modelId;
+    @Schema(description = "Assistant reply text.", example = "The Converse API lets you send structured chat history to a Bedrock model.")
     private String reply;
+    @Schema(description = "Assistant message stored in session format.")
     private ChatMessage assistantMessage;
 
     public SendMessageResponse() {

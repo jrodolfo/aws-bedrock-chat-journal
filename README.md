@@ -88,6 +88,24 @@ The session lifecycle endpoints also let you:
 
 The API starts on `http://localhost:8080`.
 
+## API documentation
+
+Swagger UI is available when the application is running:
+
+- `http://localhost:8080/swagger-ui.html`
+- `http://localhost:8080/swagger-ui/index.html`
+
+Raw OpenAPI docs are available at:
+
+- `http://localhost:8080/v3/api-docs`
+- `http://localhost:8080/v3/api-docs.yaml`
+
+The Swagger UI includes the maintainer contact information from this project:
+
+- Rod Oliveira
+- jrodolfo@gmail.com
+- https://jrodolfo.net
+
 ## Local requirements
 
 - Java 25

@@ -1,5 +1,10 @@
 package net.jrodolfo.aws.bedrock.chat.journal.controller;
 
+import io.swagger.v3.oas.annotations.Operation;
+import io.swagger.v3.oas.annotations.media.Content;
+import io.swagger.v3.oas.annotations.media.Schema;
+import io.swagger.v3.oas.annotations.responses.ApiResponse;
+import io.swagger.v3.oas.annotations.responses.ApiResponses;
 import jakarta.validation.Valid;
 import net.jrodolfo.aws.bedrock.chat.journal.model.ChatSession;
 import net.jrodolfo.aws.bedrock.chat.journal.model.CreateSessionRequest;
@@ -30,6 +35,11 @@ public class ChatController {
     }
 
     @PostMapping
+    @Operation(summary = "Create a chat session", description = "Creates a new local session with model, system prompt, and inference settings.")
+    @ApiResponses({
+            @ApiResponse(responseCode = "201", description = "Session created"),
+            @ApiResponse(responseCode = "400", description = "Invalid request", content = @Content(schema = @Schema(implementation = net.jrodolfo.aws.bedrock.chat.journal.model.ApiErrorResponse.class)))
+    })
     public ResponseEntity<CreateSessionResponse> createSession(@Valid @RequestBody(required = false) CreateSessionRequest request) {
         CreateSessionRequest payload = request != null ? request : new CreateSessionRequest();
         ChatSession session = chatSessionService.createSession(payload);
@@ -44,28 +54,56 @@ public class ChatController {
     }
 
     @GetMapping("/{sessionId}")
+    @Operation(summary = "Get a session", description = "Returns the full stored session JSON, including all messages.")
+    @ApiResponses({
+            @ApiResponse(responseCode = "200", description = "Session found"),
+            @ApiResponse(responseCode = "404", description = "Session not found", content = @Content(schema = @Schema(implementation = net.jrodolfo.aws.bedrock.chat.journal.model.ApiErrorResponse.class)))
+    })
     public ChatSession getSession(@PathVariable String sessionId) {
         return chatSessionService.getSession(sessionId);
     }
 
     @PatchMapping("/{sessionId}")
+    @Operation(summary = "Update a session", description = "Updates model, system prompt, or inference settings for an existing session.")
+    @ApiResponses({
+            @ApiResponse(responseCode = "200", description = "Session updated"),
+            @ApiResponse(responseCode = "400", description = "Invalid request", content = @Content(schema = @Schema(implementation = net.jrodolfo.aws.bedrock.chat.journal.model.ApiErrorResponse.class))),
+            @ApiResponse(responseCode = "404", description = "Session not found", content = @Content(schema = @Schema(implementation = net.jrodolfo.aws.bedrock.chat.journal.model.ApiErrorResponse.class)))
+    })
     public ChatSession updateSession(@PathVariable String sessionId,
                                      @Valid @RequestBody(required = false) UpdateSessionRequest request) {
         return chatSessionService.updateSession(sessionId, request);
     }
 
     @PostMapping("/{sessionId}/messages")
+    @Operation(summary = "Send a message", description = "Appends a user message, calls Amazon Bedrock Converse, stores the assistant reply, and returns it.")
+    @ApiResponses({
+            @ApiResponse(responseCode = "200", description = "Reply generated"),
+            @ApiResponse(responseCode = "400", description = "Invalid request", content = @Content(schema = @Schema(implementation = net.jrodolfo.aws.bedrock.chat.journal.model.ApiErrorResponse.class))),
+            @ApiResponse(responseCode = "404", description = "Session not found", content = @Content(schema = @Schema(implementation = net.jrodolfo.aws.bedrock.chat.journal.model.ApiErrorResponse.class))),
+            @ApiResponse(responseCode = "500", description = "Bedrock or storage failure", content = @Content(schema = @Schema(implementation = net.jrodolfo.aws.bedrock.chat.journal.model.ApiErrorResponse.class)))
+    })
     public SendMessageResponse sendMessage(@PathVariable String sessionId,
                                            @Valid @RequestBody SendMessageRequest request) {
         return chatSessionService.sendMessage(sessionId, request);
     }
 
     @PostMapping("/{sessionId}/reset")
+    @Operation(summary = "Reset a session", description = "Clears stored messages but keeps session metadata such as model, prompt, and inference settings.")
+    @ApiResponses({
+            @ApiResponse(responseCode = "200", description = "Session reset"),
+            @ApiResponse(responseCode = "404", description = "Session not found", content = @Content(schema = @Schema(implementation = net.jrodolfo.aws.bedrock.chat.journal.model.ApiErrorResponse.class)))
+    })
     public ChatSession resetSession(@PathVariable String sessionId) {
         return chatSessionService.resetSession(sessionId);
     }
 
     @DeleteMapping("/{sessionId}")
+    @Operation(summary = "Delete a session", description = "Deletes the stored session JSON file.")
+    @ApiResponses({
+            @ApiResponse(responseCode = "204", description = "Session deleted"),
+            @ApiResponse(responseCode = "404", description = "Session not found", content = @Content(schema = @Schema(implementation = net.jrodolfo.aws.bedrock.chat.journal.model.ApiErrorResponse.class)))
+    })
     public ResponseEntity<Void> deleteSession(@PathVariable String sessionId) {
         chatSessionService.deleteSession(sessionId);
         return ResponseEntity.noContent().build();
