@@ -138,6 +138,22 @@ class RequestScriptsSmokeTest {
         assertThat(result.stderr()).contains("SESSION_ID is required.");
     }
 
+    @Test
+    void streamMessageHelpWorks() throws Exception {
+        ProcessResult result = runScript(Path.of("scripts/stream-message.sh"), Map.of(), "--help");
+
+        assertThat(result.exitCode()).isZero();
+        assertThat(result.stdout()).contains("Prints server-sent events");
+    }
+
+    @Test
+    void streamMessageRequiresSessionId() throws Exception {
+        ProcessResult result = runScript(Path.of("scripts/stream-message.sh"), Map.of());
+
+        assertThat(result.exitCode()).isNotZero();
+        assertThat(result.stderr()).contains("SESSION_ID is required.");
+    }
+
     private ProcessResult runScript(Path scriptPath, Map<String, String> env, String... args) throws Exception {
         Path absoluteScript = REPO_ROOT.resolve(scriptPath);
         java.util.List<String> command = new java.util.ArrayList<>();

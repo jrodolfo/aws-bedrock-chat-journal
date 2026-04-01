@@ -2,6 +2,8 @@ package net.jrodolfo.aws.bedrock.chat.journal.service;
 
 import java.util.ArrayList;
 import java.util.UUID;
+import java.util.concurrent.CompletableFuture;
+import java.util.function.Consumer;
 import net.jrodolfo.aws.bedrock.chat.journal.config.AppProperties;
 import net.jrodolfo.aws.bedrock.chat.journal.exception.BadRequestException;
 import net.jrodolfo.aws.bedrock.chat.journal.exception.ResourceNotFoundException;
@@ -114,6 +116,29 @@ public class ChatSessionService {
                 session.getMessages().size());
 
         return new SendMessageResponse(session.getSessionId(), session.getModelId(), bedrockReply.getText(), assistantMessage, bedrockReply.getMetadata());
+    }
+
+    public CompletableFuture<SendMessageResponse> streamMessage(String sessionId,
+                                                                SendMessageRequest request,
+                                                                Consumer<String> chunkConsumer) {
+        ChatSession session = getSession(sessionId);
+        ensureSessionCanAcceptMoreMessages(session);
+
+        String messageText = normalizeRequiredText(request != null ? request.getText() : null, "text is required");
+        ChatMessage userMessage = ChatMessage.userText(messageText);
+        session.getMessages().add(userMessage);
+
+        return bedrockChatService.streamConversation(session, chunkConsumer)
+                .thenApply(bedrockReply -> {
+                    ChatMessage assistantMessage = ChatMessage.assistantText(bedrockReply.getText(), bedrockReply.getMetadata());
+                    session.getMessages().add(assistantMessage);
+                    sessionStore.save(session);
+                    log.debug("Updated session after streaming sessionId={}, modelId={}, messageCount={}",
+                            session.getSessionId(),
+                            session.getModelId(),
+                            session.getMessages().size());
+                    return new SendMessageResponse(session.getSessionId(), session.getModelId(), bedrockReply.getText(), assistantMessage, bedrockReply.getMetadata());
+                });
     }
 
     private void ensureSessionCanAcceptMoreMessages(ChatSession session) {

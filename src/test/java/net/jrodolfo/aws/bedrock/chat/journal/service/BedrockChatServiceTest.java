@@ -12,6 +12,7 @@ import org.junit.jupiter.api.Test;
 import org.mockito.ArgumentCaptor;
 import org.mockito.Mockito;
 import software.amazon.awssdk.core.exception.SdkClientException;
+import software.amazon.awssdk.services.bedrockruntime.BedrockRuntimeAsyncClient;
 import software.amazon.awssdk.services.bedrockruntime.BedrockRuntimeClient;
 import software.amazon.awssdk.services.bedrockruntime.model.ConversationRole;
 import software.amazon.awssdk.services.bedrockruntime.model.ConverseMetrics;
@@ -31,8 +32,9 @@ class BedrockChatServiceTest {
     @Test
     void sendConversationBuildsRequestAndExtractsReply() {
         BedrockRuntimeClient client = Mockito.mock(BedrockRuntimeClient.class);
+        BedrockRuntimeAsyncClient asyncClient = Mockito.mock(BedrockRuntimeAsyncClient.class);
         Mockito.when(client.converse(any(ConverseRequest.class))).thenReturn(converseResponse("First reply", "Second reply"));
-        BedrockChatService service = new BedrockChatService(client);
+        BedrockChatService service = new BedrockChatService(client, asyncClient);
 
         ChatSession session = new ChatSession(
                 "session-1",
@@ -76,8 +78,9 @@ class BedrockChatServiceTest {
     @Test
     void sendConversationOmitsBlankSystemPrompt() {
         BedrockRuntimeClient client = Mockito.mock(BedrockRuntimeClient.class);
+        BedrockRuntimeAsyncClient asyncClient = Mockito.mock(BedrockRuntimeAsyncClient.class);
         Mockito.when(client.converse(any(ConverseRequest.class))).thenReturn(converseResponse("Reply"));
-        BedrockChatService service = new BedrockChatService(client);
+        BedrockChatService service = new BedrockChatService(client, asyncClient);
 
         ChatSession session = new ChatSession("session-1", "model-id", "   ", null, List.of(ChatMessage.userText("Hello")));
         service.sendConversation(session);
@@ -90,7 +93,8 @@ class BedrockChatServiceTest {
     @Test
     void sendConversationRejectsUnsupportedRole() {
         BedrockRuntimeClient client = Mockito.mock(BedrockRuntimeClient.class);
-        BedrockChatService service = new BedrockChatService(client);
+        BedrockRuntimeAsyncClient asyncClient = Mockito.mock(BedrockRuntimeAsyncClient.class);
+        BedrockChatService service = new BedrockChatService(client, asyncClient);
         ChatSession session = new ChatSession(
                 "session-1",
                 "model-id",
@@ -107,8 +111,9 @@ class BedrockChatServiceTest {
     @Test
     void sendConversationThrowsWhenResponseHasNoOutputMessage() {
         BedrockRuntimeClient client = Mockito.mock(BedrockRuntimeClient.class);
+        BedrockRuntimeAsyncClient asyncClient = Mockito.mock(BedrockRuntimeAsyncClient.class);
         Mockito.when(client.converse(any(ConverseRequest.class))).thenReturn(ConverseResponse.builder().build());
-        BedrockChatService service = new BedrockChatService(client);
+        BedrockChatService service = new BedrockChatService(client, asyncClient);
 
         ChatSession session = new ChatSession("session-1", "model-id", null, null, List.of(ChatMessage.userText("Hello")));
 
@@ -120,6 +125,7 @@ class BedrockChatServiceTest {
     @Test
     void sendConversationThrowsWhenResponseDoesNotContainText() {
         BedrockRuntimeClient client = Mockito.mock(BedrockRuntimeClient.class);
+        BedrockRuntimeAsyncClient asyncClient = Mockito.mock(BedrockRuntimeAsyncClient.class);
         ConverseResponse response = ConverseResponse.builder()
                 .output(ConverseOutput.builder()
                         .message(Message.builder()
@@ -129,7 +135,7 @@ class BedrockChatServiceTest {
                         .build())
                 .build();
         Mockito.when(client.converse(any(ConverseRequest.class))).thenReturn(response);
-        BedrockChatService service = new BedrockChatService(client);
+        BedrockChatService service = new BedrockChatService(client, asyncClient);
 
         ChatSession session = new ChatSession("session-1", "model-id", null, null, List.of(ChatMessage.userText("Hello")));
 
@@ -141,8 +147,9 @@ class BedrockChatServiceTest {
     @Test
     void sendConversationWrapsSdkExceptions() {
         BedrockRuntimeClient client = Mockito.mock(BedrockRuntimeClient.class);
+        BedrockRuntimeAsyncClient asyncClient = Mockito.mock(BedrockRuntimeAsyncClient.class);
         Mockito.when(client.converse(any(ConverseRequest.class))).thenThrow(SdkClientException.create("Boom"));
-        BedrockChatService service = new BedrockChatService(client);
+        BedrockChatService service = new BedrockChatService(client, asyncClient);
 
         ChatSession session = new ChatSession("session-1", "model-id", null, null, List.of(ChatMessage.userText("Hello")));
 

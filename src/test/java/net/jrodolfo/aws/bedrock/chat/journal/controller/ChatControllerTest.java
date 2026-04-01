@@ -21,15 +21,20 @@ import org.springframework.boot.test.autoconfigure.web.servlet.WebMvcTest;
 import org.springframework.context.annotation.Import;
 import org.springframework.http.MediaType;
 import org.springframework.test.context.bean.override.mockito.MockitoBean;
+import org.springframework.test.web.servlet.MvcResult;
 import org.springframework.test.web.servlet.MockMvc;
 
+import static org.hamcrest.Matchers.containsString;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.delete;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.patch;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.asyncDispatch;
+import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.content;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.header;
+import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.request;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
@@ -223,6 +228,38 @@ class ChatControllerTest {
                 .andExpect(jsonPath("$.reply").value("Bedrock answer"))
                 .andExpect(jsonPath("$.assistantMessage.role").value("assistant"))
                 .andExpect(jsonPath("$.metadata.stopReason").value("end_turn"));
+    }
+
+    @Test
+    void streamMessageReturnsServerSentEvents() throws Exception {
+        ResponseMetadata metadata = new ResponseMetadata();
+        metadata.setStopReason("end_turn");
+        SendMessageResponse response = new SendMessageResponse(
+                "session-1",
+                "amazon.nova-lite-v1:0",
+                "Bedrock stream answer",
+                ChatMessage.assistantText("Bedrock stream answer", metadata),
+                metadata
+        );
+        Mockito.when(chatSessionService.streamMessage(eq("session-1"), any(), any()))
+                .thenReturn(java.util.concurrent.CompletableFuture.completedFuture(response));
+
+        MvcResult result = mockMvc.perform(post("/api/sessions/session-1/messages/stream")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .accept(MediaType.TEXT_EVENT_STREAM)
+                        .content("""
+                                {
+                                  "text": "Stream this"
+                                }
+                                """))
+                .andExpect(request().asyncStarted())
+                .andReturn();
+
+        mockMvc.perform(asyncDispatch(result))
+                .andExpect(status().isOk())
+                .andExpect(content().contentTypeCompatibleWith(MediaType.TEXT_EVENT_STREAM))
+                .andExpect(content().string(containsString("event:start")))
+                .andExpect(content().string(containsString("event:complete")));
     }
 
     @Test

@@ -11,10 +11,14 @@ import net.jrodolfo.aws.bedrock.chat.journal.model.CreateSessionRequest;
 import net.jrodolfo.aws.bedrock.chat.journal.model.CreateSessionResponse;
 import net.jrodolfo.aws.bedrock.chat.journal.model.SendMessageRequest;
 import net.jrodolfo.aws.bedrock.chat.journal.model.SendMessageResponse;
+import net.jrodolfo.aws.bedrock.chat.journal.model.StreamEvent;
 import net.jrodolfo.aws.bedrock.chat.journal.model.UpdateSessionRequest;
 import net.jrodolfo.aws.bedrock.chat.journal.service.ChatSessionService;
+import java.io.IOException;
 import org.springframework.http.HttpStatus;
+import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
+import org.springframework.web.servlet.mvc.method.annotation.SseEmitter;
 import org.springframework.web.bind.annotation.DeleteMapping;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PatchMapping;
@@ -88,6 +92,34 @@ public class ChatController {
         return chatSessionService.sendMessage(sessionId, request);
     }
 
+    @PostMapping(value = "/{sessionId}/messages/stream", produces = MediaType.TEXT_EVENT_STREAM_VALUE)
+    @Operation(summary = "Stream a message reply", description = "Streams assistant text chunks from Amazon Bedrock using server-sent events and persists the final reply only after successful completion.")
+    @ApiResponses({
+            @ApiResponse(responseCode = "200", description = "Streaming started"),
+            @ApiResponse(responseCode = "400", description = "Invalid request", content = @Content(schema = @Schema(implementation = net.jrodolfo.aws.bedrock.chat.journal.model.ApiErrorResponse.class))),
+            @ApiResponse(responseCode = "404", description = "Session not found", content = @Content(schema = @Schema(implementation = net.jrodolfo.aws.bedrock.chat.journal.model.ApiErrorResponse.class))),
+            @ApiResponse(responseCode = "500", description = "Bedrock or storage failure", content = @Content(schema = @Schema(implementation = net.jrodolfo.aws.bedrock.chat.journal.model.ApiErrorResponse.class)))
+    })
+    public SseEmitter streamMessage(@PathVariable String sessionId,
+                                    @Valid @RequestBody SendMessageRequest request) {
+        SseEmitter emitter = new SseEmitter(0L);
+        sendEvent(emitter, "start", StreamEvent.start());
+
+        chatSessionService.streamMessage(sessionId, request, chunk -> sendEvent(emitter, "chunk", StreamEvent.chunk(chunk)))
+                .whenComplete((response, throwable) -> {
+                    if (throwable != null) {
+                        sendEvent(emitter, "error", StreamEvent.error(throwable.getCause() != null ? throwable.getCause().getMessage() : throwable.getMessage()));
+                        emitter.complete();
+                        return;
+                    }
+
+                    sendEvent(emitter, "complete", StreamEvent.complete(response));
+                    emitter.complete();
+                });
+
+        return emitter;
+    }
+
     @PostMapping("/{sessionId}/reset")
     @Operation(summary = "Reset a session", description = "Clears stored messages but keeps session metadata such as model, prompt, and inference settings.")
     @ApiResponses({
@@ -107,5 +139,13 @@ public class ChatController {
     public ResponseEntity<Void> deleteSession(@PathVariable String sessionId) {
         chatSessionService.deleteSession(sessionId);
         return ResponseEntity.noContent().build();
+    }
+
+    private void sendEvent(SseEmitter emitter, String name, StreamEvent payload) {
+        try {
+            emitter.send(SseEmitter.event().name(name).data(payload));
+        } catch (IOException ex) {
+            throw new RuntimeException("Failed to send SSE event", ex);
+        }
     }
 }

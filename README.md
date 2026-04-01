@@ -82,6 +82,13 @@ The session lifecycle endpoints also let you:
 - reset only the stored message history
 - delete a session file when you no longer need it
 
+There is also a streaming endpoint for assistant replies:
+
+- `POST /api/sessions/{sessionId}/messages/stream`
+- response content type: `text/event-stream`
+- emits `start`, `chunk`, `complete`, and `error` events
+- persists the final assistant reply only after the stream completes successfully
+
 ## Build and test
 
 ```bash
@@ -291,6 +298,42 @@ Example response:
 }
 ```
 
+### Stream a message
+
+```bash
+curl --no-buffer \
+  -X POST http://localhost:8080/api/sessions/<sessionId>/messages/stream \
+  -H "Accept: text/event-stream" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "text": "Explain the Amazon Bedrock Converse API using streaming."
+  }'
+```
+
+Example SSE output:
+
+```text
+event:start
+data:{"type":"start"}
+
+event:chunk
+data:{"type":"chunk","text":"The "}
+
+event:chunk
+data:{"type":"chunk","text":"Converse "}
+
+event:chunk
+data:{"type":"chunk","text":"stream API ..."}
+
+event:complete
+data:{"type":"complete","response":{...}}
+```
+
+Testing note:
+
+- Swagger UI documents this endpoint, but `curl --no-buffer` or the helper script is the easiest way to test it
+- if the stream fails before completion, the partial assistant reply is not persisted
+
 ### Reset a session
 
 ```bash
@@ -394,6 +437,7 @@ A small runnable curl collection is included here:
 [`scripts/reset-session.sh`](scripts/reset-session.sh)
 [`scripts/run-local.sh`](scripts/run-local.sh)
 [`scripts/send-message.sh`](scripts/send-message.sh)
+[`scripts/stream-message.sh`](scripts/stream-message.sh)
 [`scripts/pretty-print-sessions.sh`](scripts/pretty-print-sessions.sh)
 
 Run it:
@@ -514,6 +558,22 @@ Example:
 SESSION_ID=your-session-id ./scripts/reset-session.sh
 ```
 
+### Stream a reply from an existing session
+
+Use this script when you want to see assistant text chunks as Bedrock streams them back:
+
+```bash
+./scripts/stream-message.sh --help
+```
+
+Example:
+
+```bash
+SESSION_ID=your-session-id \
+MESSAGE_TEXT="Explain the Amazon Bedrock Converse API using streaming." \
+./scripts/stream-message.sh
+```
+
 ### Pretty-print stored sessions
 
 Use this script to inspect saved session JSON files in a more readable terminal view:
@@ -571,7 +631,8 @@ scripts
 ├── pretty-print-sessions.sh
 ├── reset-session.sh
 ├── run-local.sh
-└── send-message.sh
+├── send-message.sh
+└── stream-message.sh
 src/main/java/net/jrodolfo/aws/bedrock/chat/journal
 ├── Application.java
 ├── config
