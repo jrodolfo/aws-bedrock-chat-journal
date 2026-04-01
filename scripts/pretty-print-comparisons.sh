@@ -133,6 +133,24 @@ def print_metadata(metadata: dict) -> None:
     for line in lines:
         print(f"  {line}")
 
+def format_inference_config(inference_config: dict | None) -> str:
+    if not inference_config:
+        return "app defaults"
+
+    parts = []
+    temperature = inference_config.get("temperature")
+    top_p = inference_config.get("topP")
+    max_tokens = inference_config.get("maxTokens")
+
+    if temperature is not None:
+        parts.append(f"temperature={temperature}")
+    if top_p is not None:
+        parts.append(f"topP={top_p}")
+    if max_tokens is not None:
+        parts.append(f"maxTokens={max_tokens}")
+
+    return ", ".join(parts) if parts else "app defaults"
+
 def print_model_result(label: str, result: dict) -> None:
     model_id = result.get("modelId", "-")
     reply = result.get("reply", "")
@@ -198,20 +216,51 @@ def print_summary(summary: dict) -> None:
         for line in normalize_markdown(key_differences).splitlines():
             print(f"    {line}")
 
+def print_setup(comparison: dict) -> None:
+    system_prompt_a = comparison.get("systemPromptA")
+    system_prompt_b = comparison.get("systemPromptB")
+    inference_a = comparison.get("inferenceConfigA")
+    inference_b = comparison.get("inferenceConfigB")
+    legacy_system_prompt = comparison.get("systemPrompt")
+
+    if not any([system_prompt_a, system_prompt_b, inference_a, inference_b, legacy_system_prompt]):
+        return
+
+    print("setup:")
+
+    if system_prompt_a or inference_a:
+        print("  Model A")
+        if system_prompt_a:
+            print(f"    systemPrompt: {normalize_markdown(system_prompt_a)}")
+        print(f"    inference: {format_inference_config(inference_a)}")
+
+    if system_prompt_b or inference_b:
+        print("  Model B")
+        if system_prompt_b:
+            print(f"    systemPrompt: {normalize_markdown(system_prompt_b)}")
+        print(f"    inference: {format_inference_config(inference_b)}")
+
+    if not (system_prompt_a or system_prompt_b or inference_a or inference_b) and legacy_system_prompt:
+        print(f"  systemPrompt: {normalize_markdown(legacy_system_prompt)}")
+
 print(f"comparisonId: {comparison.get('comparisonId', '-')}")
 print(f"createdAt: {comparison.get('createdAt', '-')}")
 print("prompt:")
 print(normalize_markdown(comparison.get("prompt", "")))
 print()
 
-print_summary(comparison.get("summary") or {})
-if comparison.get("summary"):
+print_setup(comparison)
+if any([
+    comparison.get("systemPromptA"),
+    comparison.get("systemPromptB"),
+    comparison.get("inferenceConfigA"),
+    comparison.get("inferenceConfigB"),
+    comparison.get("systemPrompt"),
+]):
     print()
 
-system_prompt = comparison.get("systemPrompt")
-if system_prompt:
-    print("systemPrompt:")
-    print(system_prompt)
+print_summary(comparison.get("summary") or {})
+if comparison.get("summary"):
     print()
 
 print_model_result("Model A", comparison.get("modelA") or {})

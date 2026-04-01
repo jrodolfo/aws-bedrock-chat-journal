@@ -582,11 +582,40 @@ MESSAGE_TEXT="Explain the Bedrock Converse API in simple terms." \
 ./scripts/compare-models.sh
 ```
 
+You can also compare with different prompts or different inference settings on each side:
+
+```bash
+MODEL_A=amazon.nova-lite-v1:0 \
+MODEL_B=amazon.nova-pro-v1:0 \
+SYSTEM_PROMPT_A="You are concise and direct." \
+SYSTEM_PROMPT_B="You are detailed and exam-oriented." \
+TEMPERATURE_A=0.2 \
+TEMPERATURE_B=0.8 \
+MESSAGE_TEXT="Explain how Converse differs from InvokeModel." \
+./scripts/compare-models.sh
+```
+
+In this comparison tooling, `inference` means the generation settings that shape the reply. In practice, that means values such as:
+
+- `temperature` for randomness
+- `topP` for probability-based token filtering
+- `maxTokens` for response length limits
+
+The script supports shared and per-side settings:
+
+- `SYSTEM_PROMPT` for one shared prompt
+- `SYSTEM_PROMPT_A` and `SYSTEM_PROMPT_B` for side-specific prompts
+- `TEMPERATURE_A` and `TEMPERATURE_B`
+- `TOP_P_A` and `TOP_P_B`
+- `MAX_TOKENS_A` and `MAX_TOKENS_B`
+- `SUMMARY_MODEL` if you want a different model to write the semantic key-differences summary
+
 Behavior:
 
 - creates two temporary sessions, one for each model
 - sends the same prompt to both models
 - saves one comparison JSON report under `data/comparisons/`
+- records the exact per-side setup, including prompt and inference overrides
 - computes a small summary showing things like faster model, lower token usage, and shorter reply
 - optionally adds a Bedrock-generated semantic summary of the key differences between the two replies
 - prints both replies and their metadata
@@ -625,6 +654,14 @@ Examples:
 ```bash
 ./scripts/pretty-print-comparisons.sh --raw
 ```
+
+Rendered comparison output includes:
+
+- the original prompt
+- per-side prompt and inference setup when present
+- the structured summary
+- the optional semantic key-differences summary
+- both model replies and their metadata
 
 Prompt presets are predefined system prompts with short names. Instead of typing a long study-oriented system prompt every time, you can choose a preset such as `exam-tutor` or `bedrock-accuracy` and let the script apply that system prompt to the session. This is useful for experimenting with how different prompt styles change model behavior while keeping the workflow fast and consistent.
 

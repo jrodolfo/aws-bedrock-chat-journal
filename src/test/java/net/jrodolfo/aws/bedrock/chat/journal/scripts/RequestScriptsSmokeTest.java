@@ -34,6 +34,9 @@ class RequestScriptsSmokeTest {
         assertThat(result.stdout()).contains("Creates two temporary sessions");
         assertThat(result.stdout()).contains("MODEL_A");
         assertThat(result.stdout()).contains("MODEL_B");
+        assertThat(result.stdout()).contains("SYSTEM_PROMPT_A");
+        assertThat(result.stdout()).contains("TEMPERATURE_A");
+        assertThat(result.stdout()).contains("Inference means the generation settings");
     }
 
     @Test
@@ -124,7 +127,17 @@ class RequestScriptsSmokeTest {
                   "comparisonId": "comparison-1",
                   "createdAt": "2026-04-01T22:00:00Z",
                   "prompt": "### Explain Converse API",
-                  "systemPrompt": "You are a helper.",
+                  "systemPromptA": "You are concise.",
+                  "systemPromptB": "You are detailed.",
+                  "inferenceConfigA": {
+                    "temperature": 0.2,
+                    "topP": 0.8,
+                    "maxTokens": 256
+                  },
+                  "inferenceConfigB": {
+                    "temperature": 0.7,
+                    "maxTokens": 512
+                  },
                   "summary": {
                     "fasterModel": "amazon.nova-lite-v1:0",
                     "durationDifferenceMs": 200,
@@ -164,6 +177,11 @@ class RequestScriptsSmokeTest {
         assertThat(result.stdout()).contains("comparisonId: comparison-1");
         assertThat(result.stdout()).contains("prompt:");
         assertThat(result.stdout()).contains("Explain Converse API");
+        assertThat(result.stdout()).contains("setup:");
+        assertThat(result.stdout()).contains("systemPrompt: You are concise.");
+        assertThat(result.stdout()).contains("systemPrompt: You are detailed.");
+        assertThat(result.stdout()).contains("inference: temperature=0.2, topP=0.8, maxTokens=256");
+        assertThat(result.stdout()).contains("inference: temperature=0.7, maxTokens=512");
         assertThat(result.stdout()).contains("summary:");
         assertThat(result.stdout()).contains("fasterModel: amazon.nova-lite-v1:0 (200 ms faster)");
         assertThat(result.stdout()).contains("generatedByModelId: amazon.nova-pro-v1:0");

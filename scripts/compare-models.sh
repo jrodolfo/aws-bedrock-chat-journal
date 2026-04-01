@@ -10,6 +10,14 @@ MODEL_A="${MODEL_A:-}"
 MODEL_B="${MODEL_B:-}"
 SUMMARY_MODEL="${SUMMARY_MODEL:-}"
 SYSTEM_PROMPT="${SYSTEM_PROMPT:-You are a helpful AWS study assistant.}"
+SYSTEM_PROMPT_A="${SYSTEM_PROMPT_A:-${SYSTEM_PROMPT}}"
+SYSTEM_PROMPT_B="${SYSTEM_PROMPT_B:-${SYSTEM_PROMPT}}"
+TEMPERATURE_A="${TEMPERATURE_A:-}"
+TEMPERATURE_B="${TEMPERATURE_B:-}"
+TOP_P_A="${TOP_P_A:-}"
+TOP_P_B="${TOP_P_B:-}"
+MAX_TOKENS_A="${MAX_TOKENS_A:-}"
+MAX_TOKENS_B="${MAX_TOKENS_B:-}"
 MESSAGE_TEXT="${MESSAGE_TEXT:-}"
 SESSION_A=""
 SESSION_B=""
@@ -38,11 +46,29 @@ Optional environment variables:
   BASE_URL        API base URL
                   Default: http://localhost:8080
 
-  SYSTEM_PROMPT   System prompt used for both temporary sessions
+  SYSTEM_PROMPT   Shared system prompt used when side-specific prompts are not set
                   Default: You are a helpful AWS study assistant.
 
-  SUMMARY_MODEL  Optional model used to generate a semantic key-differences summary
-                 Default: MODEL_B
+  SYSTEM_PROMPT_A System prompt override for model A
+                  Default: SYSTEM_PROMPT
+
+  SYSTEM_PROMPT_B System prompt override for model B
+                  Default: SYSTEM_PROMPT
+
+  TEMPERATURE_A   Inference override for model A temperature
+  TEMPERATURE_B   Inference override for model B temperature
+  TOP_P_A         Inference override for model A topP
+  TOP_P_B         Inference override for model B topP
+  MAX_TOKENS_A    Inference override for model A maxTokens
+  MAX_TOKENS_B    Inference override for model B maxTokens
+
+  SUMMARY_MODEL   Optional model used to generate a semantic key-differences summary
+                  Default: MODEL_B
+
+  Inference means the generation settings that shape the reply, such as:
+    - temperature  controls randomness
+    - topP         narrows token selection by probability
+    - maxTokens    limits response length
 
   COMPARISONS_DIR Directory where comparison JSON reports are saved
                   Default: <repo-root>/data/comparisons
@@ -95,14 +121,36 @@ run_curl() {
 }
 
 build_create_payload() {
-  MODEL_ID="$1" SYSTEM_PROMPT="${SYSTEM_PROMPT}" python3 - <<'PY'
+  MODEL_ID="$1" \
+  SESSION_SYSTEM_PROMPT="$2" \
+  SESSION_TEMPERATURE="$3" \
+  SESSION_TOP_P="$4" \
+  SESSION_MAX_TOKENS="$5" \
+  python3 - <<'PY'
 import json
 import os
 
-print(json.dumps({
+payload = {
     "modelId": os.environ["MODEL_ID"],
-    "systemPrompt": os.environ["SYSTEM_PROMPT"],
-}))
+    "systemPrompt": os.environ["SESSION_SYSTEM_PROMPT"],
+}
+
+inference_config = {}
+temperature = os.environ.get("SESSION_TEMPERATURE", "").strip()
+top_p = os.environ.get("SESSION_TOP_P", "").strip()
+max_tokens = os.environ.get("SESSION_MAX_TOKENS", "").strip()
+
+if temperature:
+    inference_config["temperature"] = float(temperature)
+if top_p:
+    inference_config["topP"] = float(top_p)
+if max_tokens:
+    inference_config["maxTokens"] = int(max_tokens)
+
+if inference_config:
+    payload["inferenceConfig"] = inference_config
+
+print(json.dumps(payload))
 PY
 }
 
@@ -117,13 +165,17 @@ PY
 
 create_temp_session() {
   local model_id="$1"
+  local system_prompt="$2"
+  local temperature="$3"
+  local top_p="$4"
+  local max_tokens="$5"
   local create_response
 
   create_response="$(
     run_curl \
       --request POST \
       --header "Content-Type: application/json" \
-      --data "$(build_create_payload "${model_id}")" \
+      --data "$(build_create_payload "${model_id}" "${system_prompt}" "${temperature}" "${top_p}" "${max_tokens}")" \
       "${BASE_URL}/api/sessions"
   )" || return 1
 
@@ -176,8 +228,8 @@ if [[ -z "${SUMMARY_MODEL}" ]]; then
   SUMMARY_MODEL="${MODEL_B}"
 fi
 
-SESSION_A="$(create_temp_session "${MODEL_A}")"
-SESSION_B="$(create_temp_session "${MODEL_B}")"
+SESSION_A="$(create_temp_session "${MODEL_A}" "${SYSTEM_PROMPT_A}" "${TEMPERATURE_A}" "${TOP_P_A}" "${MAX_TOKENS_A}")"
+SESSION_B="$(create_temp_session "${MODEL_B}" "${SYSTEM_PROMPT_B}" "${TEMPERATURE_B}" "${TOP_P_B}" "${MAX_TOKENS_B}")"
 
 RESPONSE_A="$(send_message "${SESSION_A}")"
 RESPONSE_B="$(send_message "${SESSION_B}")"
@@ -232,7 +284,7 @@ generate_semantic_summary() {
   local summary_prompt="$1"
   local summary_response
 
-  SESSION_SUMMARY="$(create_temp_session "${SUMMARY_MODEL}")" || return 1
+  SESSION_SUMMARY="$(create_temp_session "${SUMMARY_MODEL}" "You compare two Bedrock replies and summarize their differences." "" "" "")" || return 1
 
   summary_response="$(
     run_curl \
@@ -253,7 +305,12 @@ else
 fi
 
 REPORT_PATH="$(
-  MODEL_A="${MODEL_A}" MODEL_B="${MODEL_B}" SUMMARY_MODEL="${SUMMARY_MODEL}" SYSTEM_PROMPT="${SYSTEM_PROMPT}" MESSAGE_TEXT="${MESSAGE_TEXT}" \
+  MODEL_A="${MODEL_A}" MODEL_B="${MODEL_B}" SUMMARY_MODEL="${SUMMARY_MODEL}" \
+  SYSTEM_PROMPT_A="${SYSTEM_PROMPT_A}" SYSTEM_PROMPT_B="${SYSTEM_PROMPT_B}" \
+  TEMPERATURE_A="${TEMPERATURE_A}" TEMPERATURE_B="${TEMPERATURE_B}" \
+  TOP_P_A="${TOP_P_A}" TOP_P_B="${TOP_P_B}" \
+  MAX_TOKENS_A="${MAX_TOKENS_A}" MAX_TOKENS_B="${MAX_TOKENS_B}" \
+  MESSAGE_TEXT="${MESSAGE_TEXT}" \
   RESPONSE_A="${RESPONSE_A}" RESPONSE_B="${RESPONSE_B}" SUMMARY_RESPONSE="${SUMMARY_RESPONSE}" COMPARISONS_DIR="${COMPARISONS_DIR}" python3 - <<'PY'
 import json
 import os
@@ -270,7 +327,8 @@ report = {
     "comparisonId": comparison_id,
     "createdAt": created_at,
     "prompt": os.environ["MESSAGE_TEXT"],
-    "systemPrompt": os.environ["SYSTEM_PROMPT"],
+    "systemPromptA": os.environ["SYSTEM_PROMPT_A"],
+    "systemPromptB": os.environ["SYSTEM_PROMPT_B"],
     "modelA": {
         "modelId": os.environ["MODEL_A"],
         **json.loads(os.environ["RESPONSE_A"]),
@@ -280,6 +338,29 @@ report = {
         **json.loads(os.environ["RESPONSE_B"]),
     },
 }
+
+def parse_inference(prefix: str) -> dict:
+    inference = {}
+
+    temperature = os.environ.get(f"TEMPERATURE_{prefix}", "").strip()
+    top_p = os.environ.get(f"TOP_P_{prefix}", "").strip()
+    max_tokens = os.environ.get(f"MAX_TOKENS_{prefix}", "").strip()
+
+    if temperature:
+        inference["temperature"] = float(temperature)
+    if top_p:
+        inference["topP"] = float(top_p)
+    if max_tokens:
+        inference["maxTokens"] = int(max_tokens)
+
+    return inference
+
+inference_a = parse_inference("A")
+inference_b = parse_inference("B")
+if inference_a:
+    report["inferenceConfigA"] = inference_a
+if inference_b:
+    report["inferenceConfigB"] = inference_b
 
 def reply_length(reply: str | None) -> int:
     return len((reply or "").strip())
@@ -350,6 +431,10 @@ echo "Prompt:"
 echo "${MESSAGE_TEXT}"
 echo
 
+SYSTEM_PROMPT_A="${SYSTEM_PROMPT_A}" SYSTEM_PROMPT_B="${SYSTEM_PROMPT_B}" \
+TEMPERATURE_A="${TEMPERATURE_A}" TEMPERATURE_B="${TEMPERATURE_B}" \
+TOP_P_A="${TOP_P_A}" TOP_P_B="${TOP_P_B}" \
+MAX_TOKENS_A="${MAX_TOKENS_A}" MAX_TOKENS_B="${MAX_TOKENS_B}" \
 RESPONSE_A="${RESPONSE_A}" RESPONSE_B="${RESPONSE_B}" MODEL_A="${MODEL_A}" MODEL_B="${MODEL_B}" python3 - <<'PY'
 import json
 import os
@@ -366,6 +451,32 @@ tokens_a = metadata_a.get("totalTokens")
 tokens_b = metadata_b.get("totalTokens")
 length_a = len((response_a.get("reply") or "").strip())
 length_b = len((response_b.get("reply") or "").strip())
+
+def print_setup(label: str, model_id: str, prompt: str, suffix: str) -> None:
+    print(f"{label} setup")
+    print(f"  modelId: {model_id}")
+    print(f"  systemPrompt: {prompt}")
+
+    parts = []
+    temperature = os.environ.get(f"TEMPERATURE_{suffix}")
+    top_p = os.environ.get(f"TOP_P_{suffix}")
+    max_tokens = os.environ.get(f"MAX_TOKENS_{suffix}")
+    if temperature:
+        parts.append(f"temperature={temperature}")
+    if top_p:
+        parts.append(f"topP={top_p}")
+    if max_tokens:
+        parts.append(f"maxTokens={max_tokens}")
+
+    if parts:
+        print("  inference: " + ", ".join(parts))
+    else:
+        print("  inference: app defaults")
+
+    print()
+
+print_setup("Model A", os.environ["MODEL_A"], os.environ["SYSTEM_PROMPT_A"], "A")
+print_setup("Model B", os.environ["MODEL_B"], os.environ["SYSTEM_PROMPT_B"], "B")
 
 print("Summary")
 print("-------")
