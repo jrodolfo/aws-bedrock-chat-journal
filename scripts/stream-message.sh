@@ -62,18 +62,24 @@ if [[ -z "${SESSION_ID}" ]]; then
   exit 1
 fi
 
-curl --no-buffer --silent --show-error \
-  --request POST \
-  --header "Accept: text/event-stream" \
-  --header "Content-Type: application/json" \
-  --data "{
-    \"text\": \"${MESSAGE_TEXT}\"
-  }" \
-  "${BASE_URL}/api/sessions/${SESSION_ID}/messages/stream" |
+run_curl() {
+  curl --no-buffer --silent --show-error \
+    --request POST \
+    --header "Accept: text/event-stream" \
+    --header "Content-Type: application/json" \
+    --data "{
+      \"text\": \"${MESSAGE_TEXT}\"
+    }" \
+    "${BASE_URL}/api/sessions/${SESSION_ID}/messages/stream"
+}
+
+set +e
+
 if [[ "${OUTPUT_MODE}" == "raw" ]]; then
-  cat
+  run_curl
+  curl_status=$?
 else
-  python3 - <<'PY'
+  run_curl | python3 - <<'PY'
 import json
 import sys
 
@@ -145,4 +151,25 @@ for raw_line in sys.stdin:
 if current_event or data_lines:
     handle_event(current_event, data_lines)
 PY
+fi
+
+statuses=("${PIPESTATUS[@]}")
+set -e
+
+if [[ "${OUTPUT_MODE}" == "raw" ]]; then
+  curl_status=${curl_status:-0}
+  if [[ "${curl_status}" -ne 0 ]]; then
+    exit "${curl_status}"
+  fi
+else
+  curl_status=${statuses[0]:-0}
+  parser_status=${statuses[1]:-0}
+
+  if [[ "${parser_status}" -ne 0 ]]; then
+    exit "${parser_status}"
+  fi
+
+  if [[ "${curl_status}" -ne 0 ]]; then
+    exit "${curl_status}"
+  fi
 fi
