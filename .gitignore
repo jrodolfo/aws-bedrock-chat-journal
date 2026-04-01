@@ -45,3 +45,5 @@ out/
 
 data/sessions/*.json
 !data/sessions/.gitkeep
+data/comparisons/*.json
+!data/comparisons/.gitkeep

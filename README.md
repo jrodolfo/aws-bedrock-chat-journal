@@ -565,6 +565,33 @@ Use `send-message.sh` for quick checks and shorter replies. Use `stream-message.
 
 When the backend is unavailable, the API-focused helper scripts print a short hint that points you back to `./scripts/run-local.sh`.
 
+### Compare two models
+
+Use this script when you want to send the same prompt to two Bedrock models and keep only the comparison result, not the temporary chat sessions:
+
+```bash
+./scripts/compare-models.sh --help
+```
+
+Example:
+
+```bash
+MODEL_A=amazon.nova-lite-v1:0 \
+MODEL_B=amazon.nova-pro-v1:0 \
+MESSAGE_TEXT="Explain the Bedrock Converse API in simple terms." \
+./scripts/compare-models.sh
+```
+
+Behavior:
+
+- creates two temporary sessions, one for each model
+- sends the same prompt to both models
+- saves one comparison JSON report under `data/comparisons/`
+- prints both replies and their metadata
+- deletes the temporary sessions after the comparison
+
+This keeps your normal session history clean while still preserving the useful comparison artifact.
+
 Prompt presets are predefined system prompts with short names. Instead of typing a long study-oriented system prompt every time, you can choose a preset such as `exam-tutor` or `bedrock-accuracy` and let the script apply that system prompt to the session. This is useful for experimenting with how different prompt styles change model behavior while keeping the workflow fast and consistent.
 
 ### Chat interactively
@@ -754,11 +781,14 @@ SESSIONS_DIR=data/sessions ./scripts/pretty-print-sessions.sh
 
 ```text
 data
+├── comparisons
+│   └── .gitkeep
 └── sessions
     └── .gitkeep
 scripts
 ├── build-and-test.sh
 ├── chat.sh
+├── compare-models.sh
 ├── curl-examples.sh
 ├── delete-all-sessions.sh
 ├── list-sessions.sh

@@ -27,6 +27,49 @@ class RequestScriptsSmokeTest {
     }
 
     @Test
+    void compareModelsHelpWorks() throws Exception {
+        ProcessResult result = runScript(Path.of("scripts/compare-models.sh"), Map.of(), "--help");
+
+        assertThat(result.exitCode()).isZero();
+        assertThat(result.stdout()).contains("Creates two temporary sessions");
+        assertThat(result.stdout()).contains("MODEL_A");
+        assertThat(result.stdout()).contains("MODEL_B");
+    }
+
+    @Test
+    void compareModelsRequiresModelA() throws Exception {
+        ProcessResult result = runScript(
+                Path.of("scripts/compare-models.sh"),
+                Map.of("MODEL_B", "amazon.nova-pro-v1:0", "MESSAGE_TEXT", "Compare")
+        );
+
+        assertThat(result.exitCode()).isNotZero();
+        assertThat(result.stderr()).contains("MODEL_A is required.");
+    }
+
+    @Test
+    void compareModelsRequiresModelB() throws Exception {
+        ProcessResult result = runScript(
+                Path.of("scripts/compare-models.sh"),
+                Map.of("MODEL_A", "amazon.nova-lite-v1:0", "MESSAGE_TEXT", "Compare")
+        );
+
+        assertThat(result.exitCode()).isNotZero();
+        assertThat(result.stderr()).contains("MODEL_B is required.");
+    }
+
+    @Test
+    void compareModelsRequiresMessageText() throws Exception {
+        ProcessResult result = runScript(
+                Path.of("scripts/compare-models.sh"),
+                Map.of("MODEL_A", "amazon.nova-lite-v1:0", "MODEL_B", "amazon.nova-pro-v1:0")
+        );
+
+        assertThat(result.exitCode()).isNotZero();
+        assertThat(result.stderr()).contains("MESSAGE_TEXT is required.");
+    }
+
+    @Test
     void buildAndTestHelpWorks() throws Exception {
         ProcessResult result = runScript(Path.of("scripts/build-and-test.sh"), Map.of(), "--help");
 
