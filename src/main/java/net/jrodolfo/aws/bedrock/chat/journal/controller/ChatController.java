@@ -15,6 +15,8 @@ import net.jrodolfo.aws.bedrock.chat.journal.model.StreamEvent;
 import net.jrodolfo.aws.bedrock.chat.journal.model.UpdateSessionRequest;
 import net.jrodolfo.aws.bedrock.chat.journal.service.ChatSessionService;
 import java.io.IOException;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
@@ -31,6 +33,8 @@ import org.springframework.web.bind.annotation.RestController;
 @RestController
 @RequestMapping("/api/sessions")
 public class ChatController {
+
+    private static final Logger log = LoggerFactory.getLogger(ChatController.class);
 
     private final ChatSessionService chatSessionService;
 
@@ -103,19 +107,28 @@ public class ChatController {
     public SseEmitter streamMessage(@PathVariable String sessionId,
                                     @Valid @RequestBody SendMessageRequest request) {
         SseEmitter emitter = new SseEmitter(0L);
-        sendEvent(emitter, "start", StreamEvent.start());
 
-        chatSessionService.streamMessage(sessionId, request, chunk -> sendEvent(emitter, "chunk", StreamEvent.chunk(chunk)))
-                .whenComplete((response, throwable) -> {
-                    if (throwable != null) {
-                        sendEvent(emitter, "error", StreamEvent.error(throwable.getCause() != null ? throwable.getCause().getMessage() : throwable.getMessage()));
+        if (!sendEvent(emitter, "start", StreamEvent.start())) {
+            emitter.complete();
+            return emitter;
+        }
+
+        try {
+            chatSessionService.streamMessage(sessionId, request, chunk -> sendEvent(emitter, "chunk", StreamEvent.chunk(chunk)))
+                    .whenComplete((response, throwable) -> {
+                        if (throwable != null) {
+                            sendEvent(emitter, "error", StreamEvent.error(resolveErrorMessage(throwable)));
+                            emitter.complete();
+                            return;
+                        }
+
+                        sendEvent(emitter, "complete", StreamEvent.complete(response));
                         emitter.complete();
-                        return;
-                    }
-
-                    sendEvent(emitter, "complete", StreamEvent.complete(response));
-                    emitter.complete();
-                });
+                    });
+        } catch (RuntimeException ex) {
+            sendEvent(emitter, "error", StreamEvent.error(ex.getMessage()));
+            emitter.complete();
+        }
 
         return emitter;
     }
@@ -141,11 +154,21 @@ public class ChatController {
         return ResponseEntity.noContent().build();
     }
 
-    private void sendEvent(SseEmitter emitter, String name, StreamEvent payload) {
+    private String resolveErrorMessage(Throwable throwable) {
+        if (throwable.getCause() != null && throwable.getCause().getMessage() != null) {
+            return throwable.getCause().getMessage();
+        }
+
+        return throwable.getMessage() != null ? throwable.getMessage() : "Streaming failed";
+    }
+
+    private boolean sendEvent(SseEmitter emitter, String name, StreamEvent payload) {
         try {
             emitter.send(SseEmitter.event().name(name).data(payload));
+            return true;
         } catch (IOException ex) {
-            throw new RuntimeException("Failed to send SSE event", ex);
+            log.debug("Failed to send SSE event {}", name, ex);
+            return false;
         }
     }
 }

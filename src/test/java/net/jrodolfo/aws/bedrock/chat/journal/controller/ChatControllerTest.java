@@ -263,6 +263,30 @@ class ChatControllerTest {
     }
 
     @Test
+    void streamMessageEmitsErrorEventWhenServiceThrowsSynchronously() throws Exception {
+        Mockito.when(chatSessionService.streamMessage(eq("missing"), any(), any()))
+                .thenThrow(new ResourceNotFoundException("Session not found: missing"));
+
+        MvcResult result = mockMvc.perform(post("/api/sessions/missing/messages/stream")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .accept(MediaType.TEXT_EVENT_STREAM)
+                        .content("""
+                                {
+                                  "text": "Stream this"
+                                }
+                                """))
+                .andExpect(request().asyncStarted())
+                .andReturn();
+
+        mockMvc.perform(asyncDispatch(result))
+                .andExpect(status().isOk())
+                .andExpect(content().contentTypeCompatibleWith(MediaType.TEXT_EVENT_STREAM))
+                .andExpect(content().string(containsString("event:start")))
+                .andExpect(content().string(containsString("event:error")))
+                .andExpect(content().string(containsString("Session not found: missing")));
+    }
+
+    @Test
     void sendMessageReturnsBadRequestForBlankText() throws Exception {
         mockMvc.perform(post("/api/sessions/session-1/messages")
                         .contentType(MediaType.APPLICATION_JSON)
