@@ -27,6 +27,15 @@ class RequestScriptsSmokeTest {
     }
 
     @Test
+    void buildAndTestHelpWorks() throws Exception {
+        ProcessResult result = runScript(Path.of("scripts/build-and-test.sh"), Map.of(), "--help");
+
+        assertThat(result.exitCode()).isZero();
+        assertThat(result.stdout()).contains("Gradle verification/build tasks");
+        assertThat(result.stdout()).contains("GRADLE_TASKS");
+    }
+
+    @Test
     void chatHelpWorks() throws Exception {
         ProcessResult result = runScript(Path.of("scripts/chat.sh"), Map.of(), "--help");
 

@@ -95,6 +95,18 @@ There is also a streaming endpoint for assistant replies:
 ./gradlew test build
 ```
 
+You can also use the helper script:
+
+```bash
+./scripts/build-and-test.sh
+```
+
+If you want a different Gradle task set for one run:
+
+```bash
+GRADLE_TASKS="clean test build" ./scripts/build-and-test.sh
+```
+
 ## Run locally
 
 ```bash
@@ -723,6 +735,7 @@ data
 └── sessions
     └── .gitkeep
 scripts
+├── build-and-test.sh
 ├── chat.sh
 ├── curl-examples.sh
 ├── delete-all-sessions.sh
