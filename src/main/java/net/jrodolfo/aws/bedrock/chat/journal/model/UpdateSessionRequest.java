@@ -1,5 +1,6 @@
 package net.jrodolfo.aws.bedrock.chat.journal.model;
 
+import jakarta.validation.Valid;
 import jakarta.validation.constraints.Size;
 
 public class UpdateSessionRequest {
@@ -9,6 +10,9 @@ public class UpdateSessionRequest {
 
     @Size(max = 4000, message = "systemPrompt must be at most 4000 characters")
     private String systemPrompt;
+
+    @Valid
+    private InferenceConfig inferenceConfig;
 
     public String getModelId() {
         return modelId;
@@ -24,5 +28,13 @@ public class UpdateSessionRequest {
 
     public void setSystemPrompt(String systemPrompt) {
         this.systemPrompt = systemPrompt;
+    }
+
+    public InferenceConfig getInferenceConfig() {
+        return inferenceConfig;
+    }
+
+    public void setInferenceConfig(InferenceConfig inferenceConfig) {
+        this.inferenceConfig = inferenceConfig;
     }
 }

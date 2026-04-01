@@ -29,6 +29,7 @@ Each session file stores:
 - `sessionId`
 - `modelId`
 - `systemPrompt`
+- `inferenceConfig`
 - `messages`
 
 ## Configuration
@@ -42,6 +43,10 @@ app:
     default-model-id: amazon.nova-lite-v1:0
   storage:
     sessions-directory: data/sessions
+  inference:
+    temperature: 0.7
+    top-p: 0.9
+    max-tokens: 512
 ```
 
 The application uses the normal AWS default credential chain. Before calling Bedrock, make sure your local environment already has credentials and Bedrock model access configured.
@@ -95,6 +100,9 @@ The default configuration uses:
 - model: `amazon.nova-lite-v1:0`
 - sessions directory: `data/sessions`
 - max stored messages per session: `100`
+- default temperature: `0.7`
+- default topP: `0.9`
+- default maxTokens: `512`
 
 If you want to troubleshoot locally, useful debug logging targets are:
 
@@ -129,7 +137,12 @@ curl -X POST http://localhost:8080/api/sessions \
   -H "Content-Type: application/json" \
   -d '{
     "modelId": "amazon.nova-lite-v1:0",
-    "systemPrompt": "You are a helpful AWS study assistant."
+    "systemPrompt": "You are a helpful AWS study assistant.",
+    "inferenceConfig": {
+      "temperature": 0.4,
+      "topP": 0.8,
+      "maxTokens": 256
+    }
   }'
 ```
 
@@ -140,6 +153,11 @@ Example response:
   "sessionId": "your-session-id",
   "modelId": "amazon.nova-lite-v1:0",
   "systemPrompt": "You are a helpful AWS study assistant.",
+  "inferenceConfig": {
+    "temperature": 0.4,
+    "topP": 0.8,
+    "maxTokens": 256
+  },
   "messageCount": 0
 }
 ```
@@ -166,7 +184,12 @@ curl -X PATCH http://localhost:8080/api/sessions/<sessionId> \
   -H "Content-Type: application/json" \
   -d '{
     "modelId": "amazon.nova-pro-v1:0",
-    "systemPrompt": "You are a concise AWS study assistant."
+    "systemPrompt": "You are a concise AWS study assistant.",
+    "inferenceConfig": {
+      "temperature": 0.2,
+      "topP": 0.95,
+      "maxTokens": 512
+    }
   }'
 ```
 
@@ -261,6 +284,9 @@ Session limit exceeded:
 - Max user message size: `4000` characters
 - Max system prompt size: `4000` characters
 - Max model ID size: `200` characters
+- Temperature range: `0.0` to `1.0`
+- TopP range: `0.0` to `1.0`
+- Max tokens minimum: `1`
 - Max stored messages per session: `100` by default
 - Session files are stored under `data/sessions`
 - If a Bedrock call fails, the new message exchange is not persisted to disk

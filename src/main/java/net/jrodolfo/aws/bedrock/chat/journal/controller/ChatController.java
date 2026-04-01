@@ -37,6 +37,7 @@ public class ChatController {
                 session.getSessionId(),
                 session.getModelId(),
                 session.getSystemPrompt(),
+                session.getInferenceConfig(),
                 session.getMessages() != null ? session.getMessages().size() : 0
         );
         return ResponseEntity.status(HttpStatus.CREATED).body(response);

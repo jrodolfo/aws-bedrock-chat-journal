@@ -19,6 +19,9 @@ public class AppProperties {
     @Valid
     private Limits limits = new Limits();
 
+    @Valid
+    private Inference inference = new Inference();
+
     public Aws getAws() {
         return aws;
     }
@@ -41,6 +44,14 @@ public class AppProperties {
 
     public void setLimits(Limits limits) {
         this.limits = limits;
+    }
+
+    public Inference getInference() {
+        return inference;
+    }
+
+    public void setInference(Inference inference) {
+        this.inference = inference;
     }
 
     public static class Aws {
@@ -93,6 +104,37 @@ public class AppProperties {
 
         public void setMaxMessagesPerSession(int maxMessagesPerSession) {
             this.maxMessagesPerSession = maxMessagesPerSession;
+        }
+    }
+
+    public static class Inference {
+
+        private double temperature = 0.7;
+        private double topP = 0.9;
+        private int maxTokens = 512;
+
+        public double getTemperature() {
+            return temperature;
+        }
+
+        public void setTemperature(double temperature) {
+            this.temperature = temperature;
+        }
+
+        public double getTopP() {
+            return topP;
+        }
+
+        public void setTopP(double topP) {
+            this.topP = topP;
+        }
+
+        public int getMaxTokens() {
+            return maxTokens;
+        }
+
+        public void setMaxTokens(int maxTokens) {
+            this.maxTokens = maxTokens;
         }
     }
 }

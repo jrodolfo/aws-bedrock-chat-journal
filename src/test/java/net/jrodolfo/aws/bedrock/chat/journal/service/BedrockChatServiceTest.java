@@ -6,12 +6,12 @@ import net.jrodolfo.aws.bedrock.chat.journal.exception.BedrockInvocationExceptio
 import net.jrodolfo.aws.bedrock.chat.journal.model.ChatMessage;
 import net.jrodolfo.aws.bedrock.chat.journal.model.ChatSession;
 import net.jrodolfo.aws.bedrock.chat.journal.model.ContentBlock;
+import net.jrodolfo.aws.bedrock.chat.journal.model.InferenceConfig;
 import org.junit.jupiter.api.Test;
 import org.mockito.ArgumentCaptor;
 import org.mockito.Mockito;
 import software.amazon.awssdk.core.exception.SdkClientException;
 import software.amazon.awssdk.services.bedrockruntime.BedrockRuntimeClient;
-import software.amazon.awssdk.services.bedrockruntime.model.ContentBlockDelta;
 import software.amazon.awssdk.services.bedrockruntime.model.ConversationRole;
 import software.amazon.awssdk.services.bedrockruntime.model.ConverseOutput;
 import software.amazon.awssdk.services.bedrockruntime.model.ConverseRequest;
@@ -34,6 +34,7 @@ class BedrockChatServiceTest {
                 "session-1",
                 "amazon.nova-lite-v1:0",
                 "You are a study assistant.",
+                new InferenceConfig(0.4, 0.8, 256),
                 List.of(
                         ChatMessage.userText("Hello"),
                         ChatMessage.assistantText("Hi there")
@@ -50,6 +51,10 @@ class BedrockChatServiceTest {
         assertThat(request.modelId()).isEqualTo("amazon.nova-lite-v1:0");
         assertThat(request.system()).hasSize(1);
         assertThat(request.system().get(0).text()).isEqualTo("You are a study assistant.");
+        assertThat(request.inferenceConfig()).isNotNull();
+        assertThat(request.inferenceConfig().temperature()).isEqualTo(0.4f);
+        assertThat(request.inferenceConfig().topP()).isEqualTo(0.8f);
+        assertThat(request.inferenceConfig().maxTokens()).isEqualTo(256);
         assertThat(request.messages()).hasSize(2);
         assertThat(request.messages().get(0).role()).isEqualTo(ConversationRole.USER);
         assertThat(request.messages().get(0).content()).hasSize(1);
@@ -63,7 +68,7 @@ class BedrockChatServiceTest {
         Mockito.when(client.converse(any(ConverseRequest.class))).thenReturn(converseResponse("Reply"));
         BedrockChatService service = new BedrockChatService(client);
 
-        ChatSession session = new ChatSession("session-1", "model-id", "   ", List.of(ChatMessage.userText("Hello")));
+        ChatSession session = new ChatSession("session-1", "model-id", "   ", null, List.of(ChatMessage.userText("Hello")));
         service.sendConversation(session);
 
         ArgumentCaptor<ConverseRequest> requestCaptor = ArgumentCaptor.forClass(ConverseRequest.class);
@@ -79,6 +84,7 @@ class BedrockChatServiceTest {
                 "session-1",
                 "model-id",
                 null,
+                null,
                 List.of(new ChatMessage("system", List.of(new ContentBlock("Not supported"))))
         );
 
@@ -93,7 +99,7 @@ class BedrockChatServiceTest {
         Mockito.when(client.converse(any(ConverseRequest.class))).thenReturn(ConverseResponse.builder().build());
         BedrockChatService service = new BedrockChatService(client);
 
-        ChatSession session = new ChatSession("session-1", "model-id", null, List.of(ChatMessage.userText("Hello")));
+        ChatSession session = new ChatSession("session-1", "model-id", null, null, List.of(ChatMessage.userText("Hello")));
 
         assertThatThrownBy(() -> service.sendConversation(session))
                 .isInstanceOf(BedrockInvocationException.class)
@@ -114,7 +120,7 @@ class BedrockChatServiceTest {
         Mockito.when(client.converse(any(ConverseRequest.class))).thenReturn(response);
         BedrockChatService service = new BedrockChatService(client);
 
-        ChatSession session = new ChatSession("session-1", "model-id", null, List.of(ChatMessage.userText("Hello")));
+        ChatSession session = new ChatSession("session-1", "model-id", null, null, List.of(ChatMessage.userText("Hello")));
 
         assertThatThrownBy(() -> service.sendConversation(session))
                 .isInstanceOf(BedrockInvocationException.class)
@@ -127,7 +133,7 @@ class BedrockChatServiceTest {
         Mockito.when(client.converse(any(ConverseRequest.class))).thenThrow(SdkClientException.create("Boom"));
         BedrockChatService service = new BedrockChatService(client);
 
-        ChatSession session = new ChatSession("session-1", "model-id", null, List.of(ChatMessage.userText("Hello")));
+        ChatSession session = new ChatSession("session-1", "model-id", null, null, List.of(ChatMessage.userText("Hello")));
 
         assertThatThrownBy(() -> service.sendConversation(session))
                 .isInstanceOf(BedrockInvocationException.class)

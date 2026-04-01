@@ -37,6 +37,7 @@ class FileSessionStoreTest {
 
         ChatSession session = new ChatSession("session-1", "amazon.nova-lite-v1:0",
                 "You are a study assistant.",
+                null,
                 List.of(ChatMessage.userText("Hello")));
 
         store.save(session);

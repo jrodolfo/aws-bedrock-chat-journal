@@ -9,6 +9,7 @@ import net.jrodolfo.aws.bedrock.chat.journal.exception.ResourceNotFoundException
 import net.jrodolfo.aws.bedrock.chat.journal.model.ChatMessage;
 import net.jrodolfo.aws.bedrock.chat.journal.model.ChatSession;
 import net.jrodolfo.aws.bedrock.chat.journal.model.CreateSessionRequest;
+import net.jrodolfo.aws.bedrock.chat.journal.model.InferenceConfig;
 import net.jrodolfo.aws.bedrock.chat.journal.model.SendMessageResponse;
 import net.jrodolfo.aws.bedrock.chat.journal.model.UpdateSessionRequest;
 import net.jrodolfo.aws.bedrock.chat.journal.service.ChatSessionService;
@@ -62,7 +63,7 @@ class ChatControllerTest {
 
     @Test
     void createSessionReturnsCreatedSessionSummary() throws Exception {
-        ChatSession session = new ChatSession("session-1", "amazon.nova-lite-v1:0", "You are a tutor.", new ArrayList<>());
+        ChatSession session = new ChatSession("session-1", "amazon.nova-lite-v1:0", "You are a tutor.", new InferenceConfig(0.3, 0.8, 256), new ArrayList<>());
         Mockito.when(chatSessionService.createSession(any(CreateSessionRequest.class))).thenReturn(session);
 
         mockMvc.perform(post("/api/sessions")
@@ -77,7 +78,26 @@ class ChatControllerTest {
                 .andExpect(jsonPath("$.sessionId").value("session-1"))
                 .andExpect(jsonPath("$.modelId").value("amazon.nova-lite-v1:0"))
                 .andExpect(jsonPath("$.systemPrompt").value("You are a tutor."))
+                .andExpect(jsonPath("$.inferenceConfig.temperature").value(0.3))
+                .andExpect(jsonPath("$.inferenceConfig.topP").value(0.8))
+                .andExpect(jsonPath("$.inferenceConfig.maxTokens").value(256))
                 .andExpect(jsonPath("$.messageCount").value(0));
+    }
+
+    @Test
+    void createSessionReturnsBadRequestWhenInferenceConfigIsInvalid() throws Exception {
+        mockMvc.perform(post("/api/sessions")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("""
+                                {
+                                  "inferenceConfig": {
+                                    "temperature": 1.5
+                                  }
+                                }
+                                """))
+                .andExpect(status().isBadRequest())
+                .andExpect(jsonPath("$.message").value("Validation failed"))
+                .andExpect(jsonPath("$.details[0]").value("inferenceConfig.temperature: temperature must be at most 1.0"));
     }
 
     @Test
@@ -98,7 +118,7 @@ class ChatControllerTest {
 
     @Test
     void getSessionReturnsStoredSession() throws Exception {
-        ChatSession session = new ChatSession("session-1", "amazon.nova-lite-v1:0", null,
+        ChatSession session = new ChatSession("session-1", "amazon.nova-lite-v1:0", null, null,
                 new ArrayList<>(java.util.List.of(ChatMessage.userText("Hello"))));
         Mockito.when(chatSessionService.getSession("session-1")).thenReturn(session);
 
@@ -122,7 +142,7 @@ class ChatControllerTest {
 
     @Test
     void updateSessionReturnsUpdatedSession() throws Exception {
-        ChatSession session = new ChatSession("session-1", "updated-model", "Updated prompt", new ArrayList<>());
+        ChatSession session = new ChatSession("session-1", "updated-model", "Updated prompt", new InferenceConfig(0.5, 0.7, 300), new ArrayList<>());
         Mockito.when(chatSessionService.updateSession(eq("session-1"), any(UpdateSessionRequest.class))).thenReturn(session);
 
         mockMvc.perform(patch("/api/sessions/session-1")
@@ -130,12 +150,18 @@ class ChatControllerTest {
                         .content("""
                                 {
                                   "modelId": "updated-model",
-                                  "systemPrompt": "Updated prompt"
+                                  "systemPrompt": "Updated prompt",
+                                  "inferenceConfig": {
+                                    "temperature": 0.5,
+                                    "topP": 0.7,
+                                    "maxTokens": 300
+                                  }
                                 }
                                 """))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.modelId").value("updated-model"))
-                .andExpect(jsonPath("$.systemPrompt").value("Updated prompt"));
+                .andExpect(jsonPath("$.systemPrompt").value("Updated prompt"))
+                .andExpect(jsonPath("$.inferenceConfig.maxTokens").value(300));
     }
 
     @Test
@@ -156,7 +182,7 @@ class ChatControllerTest {
 
     @Test
     void resetSessionReturnsResetSession() throws Exception {
-        ChatSession session = new ChatSession("session-1", "amazon.nova-lite-v1:0", "prompt", new ArrayList<>());
+        ChatSession session = new ChatSession("session-1", "amazon.nova-lite-v1:0", "prompt", null, new ArrayList<>());
         Mockito.when(chatSessionService.resetSession("session-1")).thenReturn(session);
 
         mockMvc.perform(post("/api/sessions/session-1/reset"))

@@ -74,7 +74,12 @@ class ChatSessionIntegrationTest {
                 new HttpEntity<>("""
                         {
                           "modelId": "amazon.nova-lite-v1:0",
-                          "systemPrompt": "You are a helpful AWS study assistant."
+                          "systemPrompt": "You are a helpful AWS study assistant.",
+                          "inferenceConfig": {
+                            "temperature": 0.4,
+                            "topP": 0.8,
+                            "maxTokens": 256
+                          }
                         }
                         """, headers),
                 CreateSessionResponse.class
@@ -84,6 +89,8 @@ class ChatSessionIntegrationTest {
         CreateSessionResponse createdSession = createResponse.getBody();
         assertThat(createdSession).isNotNull();
         assertThat(createdSession.getMessageCount()).isZero();
+        assertThat(createdSession.getInferenceConfig()).isNotNull();
+        assertThat(createdSession.getInferenceConfig().getTemperature()).isEqualTo(0.4);
 
         ResponseEntity<String> sendResponse = restTemplate.postForEntity(
                 "http://localhost:" + port + "/api/sessions/" + createdSession.getSessionId() + "/messages",
@@ -105,6 +112,7 @@ class ChatSessionIntegrationTest {
         assertThat(storedJson).contains(createdSession.getSessionId());
         assertThat(storedJson).contains("Explain Converse API");
         assertThat(storedJson).contains("Mocked Bedrock reply");
+        assertThat(storedJson).contains("\"temperature\" : 0.4");
     }
 
     @Test

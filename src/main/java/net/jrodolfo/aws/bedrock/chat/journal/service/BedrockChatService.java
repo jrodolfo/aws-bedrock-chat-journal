@@ -7,6 +7,7 @@ import net.jrodolfo.aws.bedrock.chat.journal.exception.BedrockInvocationExceptio
 import net.jrodolfo.aws.bedrock.chat.journal.model.ChatMessage;
 import net.jrodolfo.aws.bedrock.chat.journal.model.ChatSession;
 import net.jrodolfo.aws.bedrock.chat.journal.model.ContentBlock;
+import net.jrodolfo.aws.bedrock.chat.journal.model.InferenceConfig;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Service;
@@ -16,6 +17,7 @@ import software.amazon.awssdk.services.bedrockruntime.BedrockRuntimeClient;
 import software.amazon.awssdk.services.bedrockruntime.model.ConversationRole;
 import software.amazon.awssdk.services.bedrockruntime.model.ConverseRequest;
 import software.amazon.awssdk.services.bedrockruntime.model.ConverseResponse;
+import software.amazon.awssdk.services.bedrockruntime.model.InferenceConfiguration;
 import software.amazon.awssdk.services.bedrockruntime.model.Message;
 import software.amazon.awssdk.services.bedrockruntime.model.SystemContentBlock;
 
@@ -42,6 +44,10 @@ public class BedrockChatService {
                     .modelId(session.getModelId())
                     .messages(toBedrockMessages(session.getMessages()));
 
+            if (session.getInferenceConfig() != null) {
+                requestBuilder.inferenceConfig(toInferenceConfiguration(session.getInferenceConfig()));
+            }
+
             if (StringUtils.hasText(session.getSystemPrompt())) {
                 requestBuilder.system(SystemContentBlock.builder()
                         .text(session.getSystemPrompt())
@@ -62,6 +68,24 @@ public class BedrockChatService {
                     ex.getMessage());
             throw new BedrockInvocationException("Failed to call Amazon Bedrock: " + ex.getMessage(), ex);
         }
+    }
+
+    private InferenceConfiguration toInferenceConfiguration(InferenceConfig inferenceConfig) {
+        InferenceConfiguration.Builder builder = InferenceConfiguration.builder();
+
+        if (inferenceConfig.getTemperature() != null) {
+            builder.temperature(inferenceConfig.getTemperature().floatValue());
+        }
+
+        if (inferenceConfig.getTopP() != null) {
+            builder.topP(inferenceConfig.getTopP().floatValue());
+        }
+
+        if (inferenceConfig.getMaxTokens() != null) {
+            builder.maxTokens(inferenceConfig.getMaxTokens());
+        }
+
+        return builder.build();
     }
 
     private List<Message> toBedrockMessages(List<ChatMessage> messages) {

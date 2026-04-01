@@ -10,6 +10,7 @@ import net.jrodolfo.aws.bedrock.chat.journal.model.ChatSession;
 import net.jrodolfo.aws.bedrock.chat.journal.model.CreateSessionRequest;
 import net.jrodolfo.aws.bedrock.chat.journal.model.SendMessageRequest;
 import net.jrodolfo.aws.bedrock.chat.journal.model.SendMessageResponse;
+import net.jrodolfo.aws.bedrock.chat.journal.model.InferenceConfig;
 import net.jrodolfo.aws.bedrock.chat.journal.model.UpdateSessionRequest;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -40,12 +41,14 @@ public class ChatSessionService {
         session.setSessionId(UUID.randomUUID().toString());
         session.setModelId(resolveModelId(payload));
         session.setSystemPrompt(normalizeText(payload.getSystemPrompt()));
+        session.setInferenceConfig(resolveCreateInferenceConfig(payload.getInferenceConfig()));
         session.setMessages(new ArrayList<>());
 
-        log.debug("Creating session sessionId={}, modelId={}, hasSystemPrompt={}",
+        log.debug("Creating session sessionId={}, modelId={}, hasSystemPrompt={}, inferenceConfigPresent={}",
                 session.getSessionId(),
                 session.getModelId(),
-                session.getSystemPrompt() != null);
+                session.getSystemPrompt() != null,
+                session.getInferenceConfig() != null);
         return sessionStore.save(session);
     }
 
@@ -66,10 +69,15 @@ public class ChatSessionService {
             session.setSystemPrompt(normalizeText(payload.getSystemPrompt()));
         }
 
-        log.debug("Updated session metadata sessionId={}, modelId={}, hasSystemPrompt={}",
+        if (payload.getInferenceConfig() != null) {
+            session.setInferenceConfig(mergeInferenceConfig(session.getInferenceConfig(), payload.getInferenceConfig()));
+        }
+
+        log.debug("Updated session metadata sessionId={}, modelId={}, hasSystemPrompt={}, inferenceConfigPresent={}",
                 session.getSessionId(),
                 session.getModelId(),
-                session.getSystemPrompt() != null);
+                session.getSystemPrompt() != null,
+                session.getInferenceConfig() != null);
         return sessionStore.save(session);
     }
 
@@ -143,6 +151,24 @@ public class ChatSessionService {
         }
 
         return currentModelId;
+    }
+
+    private InferenceConfig resolveCreateInferenceConfig(InferenceConfig requested) {
+        AppProperties.Inference defaults = appProperties.getInference();
+        InferenceConfig base = new InferenceConfig(defaults.getTemperature(), defaults.getTopP(), defaults.getMaxTokens());
+        return mergeInferenceConfig(base, requested);
+    }
+
+    private InferenceConfig mergeInferenceConfig(InferenceConfig base, InferenceConfig requested) {
+        if (requested == null) {
+            return base;
+        }
+
+        InferenceConfig merged = new InferenceConfig();
+        merged.setTemperature(requested.getTemperature() != null ? requested.getTemperature() : base != null ? base.getTemperature() : null);
+        merged.setTopP(requested.getTopP() != null ? requested.getTopP() : base != null ? base.getTopP() : null);
+        merged.setMaxTokens(requested.getMaxTokens() != null ? requested.getMaxTokens() : base != null ? base.getMaxTokens() : null);
+        return merged;
     }
 
     private String normalizeText(String value) {

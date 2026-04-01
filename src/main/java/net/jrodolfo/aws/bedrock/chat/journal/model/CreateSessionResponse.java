@@ -5,15 +5,17 @@ public class CreateSessionResponse {
     private String sessionId;
     private String modelId;
     private String systemPrompt;
+    private InferenceConfig inferenceConfig;
     private int messageCount;
 
     public CreateSessionResponse() {
     }
 
-    public CreateSessionResponse(String sessionId, String modelId, String systemPrompt, int messageCount) {
+    public CreateSessionResponse(String sessionId, String modelId, String systemPrompt, InferenceConfig inferenceConfig, int messageCount) {
         this.sessionId = sessionId;
         this.modelId = modelId;
         this.systemPrompt = systemPrompt;
+        this.inferenceConfig = inferenceConfig;
         this.messageCount = messageCount;
     }
 
@@ -39,6 +41,14 @@ public class CreateSessionResponse {
 
     public void setSystemPrompt(String systemPrompt) {
         this.systemPrompt = systemPrompt;
+    }
+
+    public InferenceConfig getInferenceConfig() {
+        return inferenceConfig;
+    }
+
+    public void setInferenceConfig(InferenceConfig inferenceConfig) {
+        this.inferenceConfig = inferenceConfig;
     }
 
     public int getMessageCount() {

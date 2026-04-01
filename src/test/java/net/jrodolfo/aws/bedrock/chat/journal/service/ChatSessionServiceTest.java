@@ -8,6 +8,7 @@ import net.jrodolfo.aws.bedrock.chat.journal.exception.BedrockInvocationExceptio
 import net.jrodolfo.aws.bedrock.chat.journal.exception.ResourceNotFoundException;
 import net.jrodolfo.aws.bedrock.chat.journal.model.ChatSession;
 import net.jrodolfo.aws.bedrock.chat.journal.model.CreateSessionRequest;
+import net.jrodolfo.aws.bedrock.chat.journal.model.InferenceConfig;
 import net.jrodolfo.aws.bedrock.chat.journal.model.SendMessageRequest;
 import net.jrodolfo.aws.bedrock.chat.journal.model.SendMessageResponse;
 import net.jrodolfo.aws.bedrock.chat.journal.model.UpdateSessionRequest;
@@ -32,6 +33,10 @@ class ChatSessionServiceTest {
 
         assertThat(session.getSessionId()).isNotBlank();
         assertThat(session.getModelId()).isEqualTo("amazon.nova-lite-v1:0");
+        assertThat(session.getInferenceConfig()).isNotNull();
+        assertThat(session.getInferenceConfig().getTemperature()).isEqualTo(0.7);
+        assertThat(session.getInferenceConfig().getTopP()).isEqualTo(0.9);
+        assertThat(session.getInferenceConfig().getMaxTokens()).isEqualTo(512);
         assertThat(session.getMessages()).isEmpty();
     }
 
@@ -46,6 +51,20 @@ class ChatSessionServiceTest {
 
         assertThat(session.getModelId()).isEqualTo("custom-model");
         assertThat(session.getSystemPrompt()).isNull();
+    }
+
+    @Test
+    void createSessionMergesProvidedInferenceConfigWithDefaults() {
+        ChatSessionService service = createService("Assistant reply");
+        CreateSessionRequest request = new CreateSessionRequest();
+        request.setInferenceConfig(new InferenceConfig(0.2, null, 1024));
+
+        ChatSession session = service.createSession(request);
+
+        assertThat(session.getInferenceConfig()).isNotNull();
+        assertThat(session.getInferenceConfig().getTemperature()).isEqualTo(0.2);
+        assertThat(session.getInferenceConfig().getTopP()).isEqualTo(0.9);
+        assertThat(session.getInferenceConfig().getMaxTokens()).isEqualTo(1024);
     }
 
     @Test
@@ -70,6 +89,24 @@ class ChatSessionServiceTest {
 
         assertThat(updated.getModelId()).isEqualTo("updated-model");
         assertThat(updated.getSystemPrompt()).isEqualTo("Updated prompt");
+    }
+
+    @Test
+    void updateSessionMergesInferenceConfigWithExistingValues() {
+        ChatSessionService service = createService("Assistant reply");
+        CreateSessionRequest createRequest = new CreateSessionRequest();
+        createRequest.setInferenceConfig(new InferenceConfig(0.1, 0.2, 300));
+        ChatSession session = service.createSession(createRequest);
+
+        UpdateSessionRequest updateRequest = new UpdateSessionRequest();
+        updateRequest.setInferenceConfig(new InferenceConfig(null, 0.95, null));
+
+        ChatSession updated = service.updateSession(session.getSessionId(), updateRequest);
+
+        assertThat(updated.getInferenceConfig()).isNotNull();
+        assertThat(updated.getInferenceConfig().getTemperature()).isEqualTo(0.1);
+        assertThat(updated.getInferenceConfig().getTopP()).isEqualTo(0.95);
+        assertThat(updated.getInferenceConfig().getMaxTokens()).isEqualTo(300);
     }
 
     @Test
