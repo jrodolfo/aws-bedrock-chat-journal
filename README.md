@@ -63,6 +63,12 @@ The runtime flow for `POST /api/sessions/{sessionId}/messages` is:
 4. Append the assistant reply
 5. Save the updated session JSON back to disk
 
+The session lifecycle endpoints also let you:
+
+- update `modelId` and `systemPrompt`
+- reset only the stored message history
+- delete a session file when you no longer need it
+
 ## Build and test
 
 ```bash
@@ -142,12 +148,26 @@ Contract note:
 
 - `POST /api/sessions` returns a session summary, not the full stored session JSON
 - `GET /api/sessions/{sessionId}` returns the full stored session JSON
+- `PATCH /api/sessions/{sessionId}` returns the updated full session JSON
 - `POST /api/sessions/{sessionId}/messages` returns the assistant reply plus the assistant message payload
+- `POST /api/sessions/{sessionId}/reset` returns the reset full session JSON
+- `DELETE /api/sessions/{sessionId}` returns `204 No Content`
 
 ### Get a session
 
 ```bash
 curl http://localhost:8080/api/sessions/<sessionId>
+```
+
+### Update a session
+
+```bash
+curl -X PATCH http://localhost:8080/api/sessions/<sessionId> \
+  -H "Content-Type: application/json" \
+  -d '{
+    "modelId": "amazon.nova-pro-v1:0",
+    "systemPrompt": "You are a concise AWS study assistant."
+  }'
 ```
 
 ### Send a message
@@ -158,6 +178,18 @@ curl -X POST http://localhost:8080/api/sessions/<sessionId>/messages \
   -d '{
     "text": "Explain the Amazon Bedrock Converse API in simple terms."
   }'
+```
+
+### Reset a session
+
+```bash
+curl -X POST http://localhost:8080/api/sessions/<sessionId>/reset
+```
+
+### Delete a session
+
+```bash
+curl -X DELETE http://localhost:8080/api/sessions/<sessionId>
 ```
 
 ### Example error responses
@@ -244,6 +276,7 @@ A small runnable curl collection is included here:
 
 [`requests/curl-examples.sh`](requests/curl-examples.sh)
 [`requests/list-sessions.sh`](requests/list-sessions.sh)
+[`requests/reset-session.sh`](requests/reset-session.sh)
 [`requests/send-message.sh`](requests/send-message.sh)
 [`requests/pretty-print-sessions.sh`](requests/pretty-print-sessions.sh)
 
@@ -351,6 +384,20 @@ Optional environment variables:
 - `MESSAGE_TEXT`
   Default: `Continue the conversation.`
 
+### Reset an existing session
+
+Use this script when you want to clear the stored messages for a session but keep its metadata:
+
+```bash
+./requests/reset-session.sh --help
+```
+
+Example:
+
+```bash
+SESSION_ID=your-session-id ./requests/reset-session.sh
+```
+
 ### Pretty-print stored sessions
 
 Use this script to inspect saved session JSON files in a more readable terminal view:
@@ -406,12 +453,14 @@ requests
 ├── curl-examples.sh
 ├── list-sessions.sh
 ├── pretty-print-sessions.sh
+├── reset-session.sh
 └── send-message.sh
 src/main/java/net/jrodolfo/aws/bedrock/chat/journal
 ├── Application.java
 ├── config
 │   ├── AppProperties.java
-│   └── AwsConfig.java
+│   ├── AwsConfig.java
+│   └── RequestCorrelationFilter.java
 ├── controller
 │   ├── ChatController.java
 │   └── HealthController.java
@@ -427,18 +476,28 @@ src/main/java/net/jrodolfo/aws/bedrock/chat/journal
 │   ├── ChatSession.java
 │   ├── ContentBlock.java
 │   ├── CreateSessionRequest.java
+│   ├── CreateSessionResponse.java
 │   ├── SendMessageRequest.java
-│   └── SendMessageResponse.java
+│   ├── SendMessageResponse.java
+│   └── UpdateSessionRequest.java
 └── service
     ├── BedrockChatService.java
     ├── ChatSessionService.java
-    └── FileSessionStore.java
+    ├── FileSessionStore.java
+    └── SessionStore.java
 src/main/resources
 └── application.yml
 src/test/java/net/jrodolfo/aws/bedrock/chat/journal
 ├── ApplicationTests.java
+├── ChatSessionIntegrationTest.java
+├── controller
+│   └── ChatControllerTest.java
+├── requests
+│   └── RequestScriptsSmokeTest.java
 └── service
+    ├── BedrockChatServiceTest.java
     ├── ChatSessionServiceTest.java
+    ├── FileSessionStoreDeleteTest.java
     └── FileSessionStoreTest.java
 ```
 

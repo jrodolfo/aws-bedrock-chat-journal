@@ -10,6 +10,7 @@ import net.jrodolfo.aws.bedrock.chat.journal.model.ChatSession;
 import net.jrodolfo.aws.bedrock.chat.journal.model.CreateSessionRequest;
 import net.jrodolfo.aws.bedrock.chat.journal.model.SendMessageRequest;
 import net.jrodolfo.aws.bedrock.chat.journal.model.SendMessageResponse;
+import net.jrodolfo.aws.bedrock.chat.journal.model.UpdateSessionRequest;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.io.TempDir;
 import org.mockito.Mockito;
@@ -55,6 +56,63 @@ class ChatSessionServiceTest {
 
         assertThat(session.getSessionId()).isNotBlank();
         assertThat(session.getModelId()).isEqualTo("amazon.nova-lite-v1:0");
+    }
+
+    @Test
+    void updateSessionUpdatesModelAndSystemPrompt() {
+        ChatSessionService service = createService("Assistant reply");
+        ChatSession session = service.createSession(new CreateSessionRequest());
+        UpdateSessionRequest request = new UpdateSessionRequest();
+        request.setModelId(" updated-model ");
+        request.setSystemPrompt("Updated prompt");
+
+        ChatSession updated = service.updateSession(session.getSessionId(), request);
+
+        assertThat(updated.getModelId()).isEqualTo("updated-model");
+        assertThat(updated.getSystemPrompt()).isEqualTo("Updated prompt");
+    }
+
+    @Test
+    void updateSessionLeavesModelUnchangedWhenBlankModelIdProvided() {
+        ChatSessionService service = createService("Assistant reply");
+        CreateSessionRequest createRequest = new CreateSessionRequest();
+        createRequest.setModelId("custom-model");
+        ChatSession session = service.createSession(createRequest);
+        UpdateSessionRequest updateRequest = new UpdateSessionRequest();
+        updateRequest.setModelId("   ");
+        updateRequest.setSystemPrompt("   ");
+
+        ChatSession updated = service.updateSession(session.getSessionId(), updateRequest);
+
+        assertThat(updated.getModelId()).isEqualTo("custom-model");
+        assertThat(updated.getSystemPrompt()).isNull();
+    }
+
+    @Test
+    void resetSessionClearsMessagesAndKeepsMetadata() {
+        ChatSessionService service = createService("Assistant reply");
+        ChatSession session = service.createSession(new CreateSessionRequest());
+        SendMessageRequest sendRequest = new SendMessageRequest();
+        sendRequest.setText("Hello");
+        service.sendMessage(session.getSessionId(), sendRequest);
+
+        ChatSession reset = service.resetSession(session.getSessionId());
+
+        assertThat(reset.getSessionId()).isEqualTo(session.getSessionId());
+        assertThat(reset.getModelId()).isEqualTo(session.getModelId());
+        assertThat(reset.getMessages()).isEmpty();
+    }
+
+    @Test
+    void deleteSessionRemovesStoredSession() {
+        ChatSessionService service = createService("Assistant reply");
+        ChatSession session = service.createSession(new CreateSessionRequest());
+
+        service.deleteSession(session.getSessionId());
+
+        assertThatThrownBy(() -> service.getSession(session.getSessionId()))
+                .isInstanceOf(ResourceNotFoundException.class)
+                .hasMessage("Session not found: " + session.getSessionId());
     }
 
     @Test
@@ -168,8 +226,8 @@ class ChatSessionServiceTest {
         appProperties.getStorage().setSessionsDirectory(tempDir.resolve("sessions").toString());
         appProperties.getLimits().setMaxMessagesPerSession(maxMessagesPerSession);
 
-        FileSessionStore store = new FileSessionStore(new ObjectMapper().findAndRegisterModules(), appProperties);
-        store.initializeStorage();
+        SessionStore store = new FileSessionStore(new ObjectMapper().findAndRegisterModules(), appProperties);
+        ((FileSessionStore) store).initializeStorage();
 
         return new ChatSessionService(store, bedrockChatService, appProperties);
     }

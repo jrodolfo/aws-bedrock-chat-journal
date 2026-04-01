@@ -70,6 +70,22 @@ public class FileSessionStore implements SessionStore {
         }
     }
 
+    @Override
+    public void delete(String sessionId) {
+        Path sessionFile = getSessionFile(sessionId);
+        if (!Files.exists(sessionFile)) {
+            log.debug("Session file not found for delete sessionId {} at {}", sessionId, sessionFile.toAbsolutePath());
+            return;
+        }
+
+        try {
+            Files.delete(sessionFile);
+            log.debug("Deleted session {} at {}", sessionId, sessionFile.toAbsolutePath());
+        } catch (IOException ex) {
+            throw new SessionStorageException("Failed to delete session: " + sessionId, ex);
+        }
+    }
+
     Path getSessionFile(String sessionId) {
         return sessionsDirectory.resolve(sessionId + ".json");
     }

@@ -122,6 +122,22 @@ class RequestScriptsSmokeTest {
         assertThat(result.stdout()).contains("messageCount: 1");
     }
 
+    @Test
+    void resetSessionHelpWorks() throws Exception {
+        ProcessResult result = runScript(Path.of("requests/reset-session.sh"), Map.of(), "--help");
+
+        assertThat(result.exitCode()).isZero();
+        assertThat(result.stdout()).contains("Resets the message history");
+    }
+
+    @Test
+    void resetSessionRequiresSessionId() throws Exception {
+        ProcessResult result = runScript(Path.of("requests/reset-session.sh"), Map.of());
+
+        assertThat(result.exitCode()).isNotZero();
+        assertThat(result.stderr()).contains("SESSION_ID is required.");
+    }
+
     private ProcessResult runScript(Path scriptPath, Map<String, String> env, String... args) throws Exception {
         Path absoluteScript = REPO_ROOT.resolve(scriptPath);
         java.util.List<String> command = new java.util.ArrayList<>();

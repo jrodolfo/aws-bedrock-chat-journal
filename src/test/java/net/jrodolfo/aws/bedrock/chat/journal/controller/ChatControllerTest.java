@@ -9,8 +9,8 @@ import net.jrodolfo.aws.bedrock.chat.journal.exception.ResourceNotFoundException
 import net.jrodolfo.aws.bedrock.chat.journal.model.ChatMessage;
 import net.jrodolfo.aws.bedrock.chat.journal.model.ChatSession;
 import net.jrodolfo.aws.bedrock.chat.journal.model.CreateSessionRequest;
-import net.jrodolfo.aws.bedrock.chat.journal.model.CreateSessionResponse;
 import net.jrodolfo.aws.bedrock.chat.journal.model.SendMessageResponse;
+import net.jrodolfo.aws.bedrock.chat.journal.model.UpdateSessionRequest;
 import net.jrodolfo.aws.bedrock.chat.journal.service.ChatSessionService;
 import org.junit.jupiter.api.Test;
 import org.mockito.Mockito;
@@ -18,13 +18,16 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.autoconfigure.web.servlet.WebMvcTest;
 import org.springframework.context.annotation.Import;
 import org.springframework.http.MediaType;
-import org.springframework.test.web.servlet.MockMvc;
 import org.springframework.test.context.bean.override.mockito.MockitoBean;
+import org.springframework.test.web.servlet.MockMvc;
 
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.eq;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.delete;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.patch;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
+import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.header;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
@@ -45,7 +48,7 @@ class ChatControllerTest {
     void healthEndpointReturnsOk() throws Exception {
         mockMvc.perform(get("/api/health"))
                 .andExpect(status().isOk())
-                .andExpect(org.springframework.test.web.servlet.result.MockMvcResultMatchers.header().exists(RequestCorrelationFilter.REQUEST_ID_HEADER))
+                .andExpect(header().exists(RequestCorrelationFilter.REQUEST_ID_HEADER))
                 .andExpect(jsonPath("$.status").value("OK"));
     }
 
@@ -54,12 +57,11 @@ class ChatControllerTest {
         mockMvc.perform(get("/api/health")
                         .header(RequestCorrelationFilter.REQUEST_ID_HEADER, "req-123"))
                 .andExpect(status().isOk())
-                .andExpect(org.springframework.test.web.servlet.result.MockMvcResultMatchers.header()
-                        .string(RequestCorrelationFilter.REQUEST_ID_HEADER, "req-123"));
+                .andExpect(header().string(RequestCorrelationFilter.REQUEST_ID_HEADER, "req-123"));
     }
 
     @Test
-    void createSessionReturnsCreatedSession() throws Exception {
+    void createSessionReturnsCreatedSessionSummary() throws Exception {
         ChatSession session = new ChatSession("session-1", "amazon.nova-lite-v1:0", "You are a tutor.", new ArrayList<>());
         Mockito.when(chatSessionService.createSession(any(CreateSessionRequest.class))).thenReturn(session);
 
@@ -116,6 +118,57 @@ class ChatControllerTest {
                 .andExpect(status().isNotFound())
                 .andExpect(jsonPath("$.message").value("Session not found: missing"))
                 .andExpect(jsonPath("$.status").value(404));
+    }
+
+    @Test
+    void updateSessionReturnsUpdatedSession() throws Exception {
+        ChatSession session = new ChatSession("session-1", "updated-model", "Updated prompt", new ArrayList<>());
+        Mockito.when(chatSessionService.updateSession(eq("session-1"), any(UpdateSessionRequest.class))).thenReturn(session);
+
+        mockMvc.perform(patch("/api/sessions/session-1")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("""
+                                {
+                                  "modelId": "updated-model",
+                                  "systemPrompt": "Updated prompt"
+                                }
+                                """))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.modelId").value("updated-model"))
+                .andExpect(jsonPath("$.systemPrompt").value("Updated prompt"));
+    }
+
+    @Test
+    void updateSessionReturnsBadRequestWhenModelIdTooLong() throws Exception {
+        String longModelId = "a".repeat(201);
+
+        mockMvc.perform(patch("/api/sessions/session-1")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("""
+                                {
+                                  "modelId": "%s"
+                                }
+                                """.formatted(longModelId)))
+                .andExpect(status().isBadRequest())
+                .andExpect(jsonPath("$.message").value("Validation failed"))
+                .andExpect(jsonPath("$.details[0]").value("modelId: modelId must be at most 200 characters"));
+    }
+
+    @Test
+    void resetSessionReturnsResetSession() throws Exception {
+        ChatSession session = new ChatSession("session-1", "amazon.nova-lite-v1:0", "prompt", new ArrayList<>());
+        Mockito.when(chatSessionService.resetSession("session-1")).thenReturn(session);
+
+        mockMvc.perform(post("/api/sessions/session-1/reset"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.sessionId").value("session-1"))
+                .andExpect(jsonPath("$.messages").isEmpty());
+    }
+
+    @Test
+    void deleteSessionReturnsNoContent() throws Exception {
+        mockMvc.perform(delete("/api/sessions/session-1"))
+                .andExpect(status().isNoContent());
     }
 
     @Test

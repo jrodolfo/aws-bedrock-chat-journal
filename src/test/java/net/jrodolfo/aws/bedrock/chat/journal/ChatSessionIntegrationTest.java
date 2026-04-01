@@ -12,6 +12,7 @@ import org.springframework.boot.test.web.client.TestRestTemplate;
 import org.springframework.boot.test.web.server.LocalServerPort;
 import org.springframework.http.HttpEntity;
 import org.springframework.http.HttpHeaders;
+import org.springframework.http.HttpMethod;
 import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
 import org.springframework.test.context.DynamicPropertyRegistry;
@@ -147,5 +148,68 @@ class ChatSessionIntegrationTest {
         assertThat(storedJson).doesNotContain("This should fail");
         assertThat(storedJson).doesNotContain("Failed to call Amazon Bedrock");
         assertThat(storedJson).contains("\"messages\" : [ ]");
+    }
+
+    @Test
+    void updateResetAndDeleteSessionWorkThroughHttp() {
+        HttpHeaders headers = new HttpHeaders();
+        headers.setContentType(MediaType.APPLICATION_JSON);
+
+        ResponseEntity<CreateSessionResponse> createResponse = restTemplate.postForEntity(
+                "http://localhost:" + port + "/api/sessions",
+                new HttpEntity<>("""
+                        {
+                          "modelId": "amazon.nova-lite-v1:0",
+                          "systemPrompt": "Original prompt"
+                        }
+                        """, headers),
+                CreateSessionResponse.class
+        );
+
+        CreateSessionResponse createdSession = createResponse.getBody();
+        assertThat(createdSession).isNotNull();
+
+        ResponseEntity<ChatSession> updateResponse = restTemplate.exchange(
+                "http://localhost:" + port + "/api/sessions/" + createdSession.getSessionId(),
+                HttpMethod.PATCH,
+                new HttpEntity<>("""
+                        {
+                          "modelId": "updated-model",
+                          "systemPrompt": "Updated prompt"
+                        }
+                        """, headers),
+                ChatSession.class
+        );
+
+        assertThat(updateResponse.getStatusCode().is2xxSuccessful()).isTrue();
+        assertThat(updateResponse.getBody()).isNotNull();
+        assertThat(updateResponse.getBody().getModelId()).isEqualTo("updated-model");
+        assertThat(updateResponse.getBody().getSystemPrompt()).isEqualTo("Updated prompt");
+
+        ResponseEntity<ChatSession> resetResponse = restTemplate.postForEntity(
+                "http://localhost:" + port + "/api/sessions/" + createdSession.getSessionId() + "/reset",
+                HttpEntity.EMPTY,
+                ChatSession.class
+        );
+
+        assertThat(resetResponse.getStatusCode().is2xxSuccessful()).isTrue();
+        assertThat(resetResponse.getBody()).isNotNull();
+        assertThat(resetResponse.getBody().getMessages()).isEmpty();
+
+        ResponseEntity<Void> deleteResponse = restTemplate.exchange(
+                "http://localhost:" + port + "/api/sessions/" + createdSession.getSessionId(),
+                HttpMethod.DELETE,
+                HttpEntity.EMPTY,
+                Void.class
+        );
+
+        assertThat(deleteResponse.getStatusCode().value()).isEqualTo(204);
+
+        ResponseEntity<String> getDeleted = restTemplate.getForEntity(
+                "http://localhost:" + port + "/api/sessions/" + createdSession.getSessionId(),
+                String.class
+        );
+
+        assertThat(getDeleted.getStatusCode().value()).isEqualTo(404);
     }
 }

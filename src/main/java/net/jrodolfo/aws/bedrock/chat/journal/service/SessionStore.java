@@ -8,4 +8,6 @@ public interface SessionStore {
     ChatSession save(ChatSession session);
 
     Optional<ChatSession> load(String sessionId);
+
+    void delete(String sessionId);
 }

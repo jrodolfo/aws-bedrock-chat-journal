@@ -10,6 +10,7 @@ import net.jrodolfo.aws.bedrock.chat.journal.model.ChatSession;
 import net.jrodolfo.aws.bedrock.chat.journal.model.CreateSessionRequest;
 import net.jrodolfo.aws.bedrock.chat.journal.model.SendMessageRequest;
 import net.jrodolfo.aws.bedrock.chat.journal.model.SendMessageResponse;
+import net.jrodolfo.aws.bedrock.chat.journal.model.UpdateSessionRequest;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Service;
@@ -51,6 +52,38 @@ public class ChatSessionService {
     public ChatSession getSession(String sessionId) {
         return sessionStore.load(sessionId)
                 .orElseThrow(() -> new ResourceNotFoundException("Session not found: " + sessionId));
+    }
+
+    public ChatSession updateSession(String sessionId, UpdateSessionRequest request) {
+        ChatSession session = getSession(sessionId);
+        UpdateSessionRequest payload = request != null ? request : new UpdateSessionRequest();
+
+        if (payload.getModelId() != null) {
+            session.setModelId(resolveOptionalModelId(payload.getModelId(), session.getModelId()));
+        }
+
+        if (payload.getSystemPrompt() != null) {
+            session.setSystemPrompt(normalizeText(payload.getSystemPrompt()));
+        }
+
+        log.debug("Updated session metadata sessionId={}, modelId={}, hasSystemPrompt={}",
+                session.getSessionId(),
+                session.getModelId(),
+                session.getSystemPrompt() != null);
+        return sessionStore.save(session);
+    }
+
+    public ChatSession resetSession(String sessionId) {
+        ChatSession session = getSession(sessionId);
+        session.setMessages(new ArrayList<>());
+        log.debug("Reset session messages sessionId={}, modelId={}", session.getSessionId(), session.getModelId());
+        return sessionStore.save(session);
+    }
+
+    public void deleteSession(String sessionId) {
+        getSession(sessionId);
+        sessionStore.delete(sessionId);
+        log.debug("Deleted session sessionId={}", sessionId);
     }
 
     public SendMessageResponse sendMessage(String sessionId, SendMessageRequest request) {
@@ -102,6 +135,14 @@ public class ChatSessionService {
         }
 
         return appProperties.getAws().getDefaultModelId();
+    }
+
+    private String resolveOptionalModelId(String requestedModelId, String currentModelId) {
+        if (StringUtils.hasText(requestedModelId)) {
+            return requestedModelId.trim();
+        }
+
+        return currentModelId;
     }
 
     private String normalizeText(String value) {
