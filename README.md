@@ -663,6 +663,30 @@ Rendered comparison output includes:
 - the optional semantic key-differences summary
 - both model replies and their metadata
 
+### Comparison stats
+
+Use this script when you want a quick aggregate view of the comparison reports you have already saved:
+
+```bash
+./scripts/comparison-stats.sh --help
+```
+
+Example:
+
+```bash
+./scripts/comparison-stats.sh
+```
+
+It summarizes things like:
+
+- total comparison count
+- distinct models used
+- how often each model appears
+- average duration per model
+- average total tokens per model
+- how often each model was faster
+- how often each model used fewer tokens
+
 Prompt presets are predefined system prompts with short names. Instead of typing a long study-oriented system prompt every time, you can choose a preset such as `exam-tutor` or `bedrock-accuracy` and let the script apply that system prompt to the session. This is useful for experimenting with how different prompt styles change model behavior while keeping the workflow fast and consistent.
 
 ### Chat interactively
@@ -859,6 +883,7 @@ data
 scripts
 ├── build-and-test.sh
 ├── chat.sh
+├── comparison-stats.sh
 ├── compare-models.sh
 ├── curl-examples.sh
 ├── delete-all-sessions.sh

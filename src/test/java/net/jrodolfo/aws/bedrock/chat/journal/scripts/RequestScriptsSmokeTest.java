@@ -81,6 +81,104 @@ class RequestScriptsSmokeTest {
     }
 
     @Test
+    void comparisonStatsHelpWorks() throws Exception {
+        ProcessResult result = runScript(Path.of("scripts/comparison-stats.sh"), Map.of(), "--help");
+
+        assertThat(result.exitCode()).isZero();
+        assertThat(result.stdout()).contains("Reads saved comparison reports");
+        assertThat(result.stdout()).contains("average duration per model");
+    }
+
+    @Test
+    void comparisonStatsHandlesEmptyDirectory() throws Exception {
+        Path comparisonsDir = tempDir.resolve("comparisons");
+        Files.createDirectories(comparisonsDir);
+
+        ProcessResult result = runScript(
+                Path.of("scripts/comparison-stats.sh"),
+                Map.of("COMPARISONS_DIR", comparisonsDir.toString())
+        );
+
+        assertThat(result.exitCode()).isZero();
+        assertThat(result.stdout()).contains("No comparison JSON files found");
+    }
+
+    @Test
+    void comparisonStatsSummarizesComparisonReports() throws Exception {
+        Path comparisonsDir = tempDir.resolve("comparisons");
+        Files.createDirectories(comparisonsDir);
+        Files.writeString(comparisonsDir.resolve("comparison-1.json"), """
+                {
+                  "comparisonId": "comparison-1",
+                  "createdAt": "2026-04-01T22:00:00Z",
+                  "prompt": "Explain Converse API",
+                  "modelA": {
+                    "modelId": "amazon.nova-lite-v1:0",
+                    "metadata": {
+                      "durationMs": 1000,
+                      "totalTokens": 50
+                    }
+                  },
+                  "modelB": {
+                    "modelId": "amazon.nova-pro-v1:0",
+                    "metadata": {
+                      "durationMs": 1200,
+                      "totalTokens": 70
+                    }
+                  },
+                  "summary": {
+                    "fasterModel": "amazon.nova-lite-v1:0",
+                    "lowerTokenModel": "amazon.nova-lite-v1:0"
+                  }
+                }
+                """);
+        Files.writeString(comparisonsDir.resolve("comparison-2.json"), """
+                {
+                  "comparisonId": "comparison-2",
+                  "createdAt": "2026-04-01T23:00:00Z",
+                  "prompt": "Explain prompt engineering",
+                  "modelA": {
+                    "modelId": "amazon.nova-lite-v1:0",
+                    "metadata": {
+                      "durationMs": 900,
+                      "totalTokens": 60
+                    }
+                  },
+                  "modelB": {
+                    "modelId": "amazon.nova-pro-v1:0",
+                    "metadata": {
+                      "durationMs": 1100,
+                      "totalTokens": 80
+                    }
+                  },
+                  "summary": {
+                    "fasterModel": "amazon.nova-lite-v1:0",
+                    "lowerTokenModel": "amazon.nova-lite-v1:0"
+                  }
+                }
+                """);
+
+        ProcessResult result = runScript(
+                Path.of("scripts/comparison-stats.sh"),
+                Map.of("COMPARISONS_DIR", comparisonsDir.toString())
+        );
+
+        assertThat(result.exitCode()).isZero();
+        assertThat(result.stdout()).contains("overall:");
+        assertThat(result.stdout()).contains("comparisons: 2");
+        assertThat(result.stdout()).contains("distinctModels: 2");
+        assertThat(result.stdout()).contains("model usage:");
+        assertThat(result.stdout()).contains("amazon.nova-lite-v1:0: 2");
+        assertThat(result.stdout()).contains("amazon.nova-pro-v1:0: 2");
+        assertThat(result.stdout()).contains("performance summary:");
+        assertThat(result.stdout()).contains("amazon.nova-lite-v1:0: avgDurationMs=950.0, fasterCount=2");
+        assertThat(result.stdout()).contains("amazon.nova-pro-v1:0: avgDurationMs=1150.0, fasterCount=0");
+        assertThat(result.stdout()).contains("token summary:");
+        assertThat(result.stdout()).contains("amazon.nova-lite-v1:0: avgTotalTokens=55.0, lowerTokenCount=2");
+        assertThat(result.stdout()).contains("amazon.nova-pro-v1:0: avgTotalTokens=75.0, lowerTokenCount=0");
+    }
+
+    @Test
     void listComparisonsReadsCustomDirectory() throws Exception {
         Path comparisonsDir = tempDir.resolve("comparisons");
         Files.createDirectories(comparisonsDir);
