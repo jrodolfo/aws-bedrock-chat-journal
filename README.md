@@ -229,6 +229,13 @@ SESSIONS_DIR=data/sessions ./requests/pretty-print-sessions.sh
 ## Project structure
 
 ```text
+data
+└── sessions
+    └── .gitkeep
+requests
+├── curl-examples.sh
+├── pretty-print-sessions.sh
+└── send-message.sh
 src/main/java/net/jrodolfo/aws/bedrock/chat/journal
 ├── Application.java
 ├── config
@@ -255,6 +262,13 @@ src/main/java/net/jrodolfo/aws/bedrock/chat/journal
     ├── BedrockChatService.java
     ├── ChatSessionService.java
     └── FileSessionStore.java
+src/main/resources
+└── application.yml
+src/test/java/net/jrodolfo/aws/bedrock/chat/journal
+├── ApplicationTests.java
+└── service
+    ├── ChatSessionServiceTest.java
+    └── FileSessionStoreTest.java
 ```
 
 ## Contact
