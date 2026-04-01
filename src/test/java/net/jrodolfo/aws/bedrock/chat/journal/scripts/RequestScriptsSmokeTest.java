@@ -179,6 +179,81 @@ class RequestScriptsSmokeTest {
     }
 
     @Test
+    void resetAllSessionsHelpWorks() throws Exception {
+        ProcessResult result = runScript(Path.of("scripts/reset-all-sessions.sh"), Map.of(), "--help");
+
+        assertThat(result.exitCode()).isZero();
+        assertThat(result.stdout()).contains("Clears only the messages array");
+        assertThat(result.stdout()).contains("--yes");
+    }
+
+    @Test
+    void resetAllSessionsAbortsWithoutConfirmation() throws Exception {
+        Path sessionsDir = tempDir.resolve("sessions");
+        Files.createDirectories(sessionsDir);
+        Path sessionFile = sessionsDir.resolve("session-1.json");
+        Files.writeString(sessionFile, """
+                {
+                  "sessionId": "session-1",
+                  "modelId": "amazon.nova-lite-v1:0",
+                  "systemPrompt": "keep me",
+                  "messages": [
+                    {
+                      "role": "user",
+                      "content": [
+                        { "text": "Hello" }
+                      ]
+                    }
+                  ]
+                }
+                """);
+
+        ProcessResult result = runScriptWithInput(Path.of("scripts/reset-all-sessions.sh"), Map.of("SESSIONS_DIR", sessionsDir.toString()), "no\n");
+
+        assertThat(result.exitCode()).isZero();
+        assertThat(result.stdout()).contains("Type 'yes' to continue:");
+        assertThat(result.stdout()).contains("Aborted. No session files were changed.");
+        assertThat(Files.readString(sessionFile)).contains("\"messages\": [");
+        assertThat(Files.readString(sessionFile)).contains("\"Hello\"");
+    }
+
+    @Test
+    void resetAllSessionsClearsMessagesWithYesFlag() throws Exception {
+        Path sessionsDir = tempDir.resolve("sessions");
+        Files.createDirectories(sessionsDir);
+        Path sessionFile = sessionsDir.resolve("session-1.json");
+        Files.writeString(sessionFile, """
+                {
+                  "sessionId": "session-1",
+                  "modelId": "amazon.nova-lite-v1:0",
+                  "systemPrompt": "keep me",
+                  "inferenceConfig": {
+                    "temperature": 0.7
+                  },
+                  "messages": [
+                    {
+                      "role": "assistant",
+                      "content": [
+                        { "text": "Hello" }
+                      ]
+                    }
+                  ]
+                }
+                """);
+
+        ProcessResult result = runScriptWithInput(Path.of("scripts/reset-all-sessions.sh"), Map.of("SESSIONS_DIR", sessionsDir.toString()), "", "--yes");
+
+        assertThat(result.exitCode()).isZero();
+        assertThat(result.stdout()).contains("Reset 1 session file(s).");
+        String updated = Files.readString(sessionFile);
+        assertThat(updated).contains("\"messages\": []");
+        assertThat(updated).contains("\"sessionId\": \"session-1\"");
+        assertThat(updated).contains("\"systemPrompt\": \"keep me\"");
+        assertThat(updated).contains("\"inferenceConfig\"");
+        assertThat(updated).doesNotContain("\"Hello\"");
+    }
+
+    @Test
     void streamMessageHelpWorks() throws Exception {
         ProcessResult result = runScript(Path.of("scripts/stream-message.sh"), Map.of(), "--help");
 
@@ -196,6 +271,10 @@ class RequestScriptsSmokeTest {
     }
 
     private ProcessResult runScript(Path scriptPath, Map<String, String> env, String... args) throws Exception {
+        return runScriptWithInput(scriptPath, env, "", args);
+    }
+
+    private ProcessResult runScriptWithInput(Path scriptPath, Map<String, String> env, String stdin, String... args) throws Exception {
         Path absoluteScript = REPO_ROOT.resolve(scriptPath);
         java.util.List<String> command = new java.util.ArrayList<>();
         command.add("bash");
@@ -209,6 +288,10 @@ class RequestScriptsSmokeTest {
         environment.putAll(new LinkedHashMap<>(env));
 
         Process process = processBuilder.start();
+        if (!stdin.isEmpty()) {
+            process.getOutputStream().write(stdin.getBytes());
+        }
+        process.getOutputStream().close();
         String stdout = readStream(process.getInputStream());
         String stderr = readStream(process.getErrorStream());
         int exitCode = process.waitFor();

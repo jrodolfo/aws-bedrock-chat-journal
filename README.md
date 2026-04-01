@@ -558,6 +558,31 @@ Example:
 SESSION_ID=your-session-id ./scripts/reset-session.sh
 ```
 
+### Reset all sessions
+
+Use this script when you want to clear the stored messages for every saved session but keep the session files and metadata:
+
+```bash
+./scripts/reset-all-sessions.sh --help
+```
+
+Interactive example:
+
+```bash
+./scripts/reset-all-sessions.sh
+```
+
+Non-interactive example:
+
+```bash
+./scripts/reset-all-sessions.sh --yes
+```
+
+Optional environment variables:
+
+- `SESSIONS_DIR`
+  Default: `<repo-root>/data/sessions`
+
 ### Stream a reply from an existing session
 
 Use this script when you want to see assistant text chunks as Bedrock streams them back:
@@ -640,6 +665,7 @@ scripts
 ├── curl-examples.sh
 ├── list-sessions.sh
 ├── pretty-print-sessions.sh
+├── reset-all-sessions.sh
 ├── reset-session.sh
 ├── run-local.sh
 ├── send-message.sh
