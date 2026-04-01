@@ -6,6 +6,7 @@ BASE_URL="${BASE_URL:-http://localhost:8080}"
 SESSION_ID="${SESSION_ID:-}"
 MESSAGE_TEXT="${MESSAGE_TEXT:-Explain the Amazon Bedrock Converse API using streaming.}"
 OUTPUT_MODE="pretty"
+SHOW_METADATA="${SHOW_METADATA:-true}"
 
 usage() {
   cat <<EOF
@@ -29,6 +30,9 @@ Optional environment variables:
 
   MESSAGE_TEXT    User message sent to the existing session
                   Default: Explain the Amazon Bedrock Converse API using streaming.
+
+  SHOW_METADATA   true or false
+                  Default: true
 
 Options:
   --raw           Print raw server-sent events instead of pretty terminal output
@@ -62,6 +66,13 @@ if [[ -z "${SESSION_ID}" ]]; then
   exit 1
 fi
 
+print_request_failure_hint() {
+  echo >&2
+  echo "Request failed." >&2
+  echo "Is the app running at ${BASE_URL}?" >&2
+  echo "Try ./scripts/run-local.sh" >&2
+}
+
 run_curl() {
   curl --no-buffer --silent --show-error \
     --request POST \
@@ -79,7 +90,7 @@ if [[ "${OUTPUT_MODE}" == "raw" ]]; then
   run_curl
   curl_status=$?
 else
-  BASE_URL="${BASE_URL}" SESSION_ID="${SESSION_ID}" MESSAGE_TEXT="${MESSAGE_TEXT}" python3 - <<'PY'
+  BASE_URL="${BASE_URL}" SESSION_ID="${SESSION_ID}" MESSAGE_TEXT="${MESSAGE_TEXT}" SHOW_METADATA="${SHOW_METADATA}" python3 - <<'PY'
 import json
 import os
 import re
@@ -90,6 +101,7 @@ current_event = None
 data_lines = []
 event_error = False
 pending_text = ""
+show_metadata = os.environ.get("SHOW_METADATA", "true").lower() in {"true", "on", "yes", "1"}
 
 def normalize_markdown(text: str) -> str:
     text = text.replace("*", "")
@@ -177,7 +189,8 @@ def handle_event(event_name: str | None, payload_lines: list[str]) -> None:
         print(flush=True)
         print(flush=True)
         print("Completed.", flush=True)
-        print_metadata_summary(metadata)
+        if show_metadata:
+            print_metadata_summary(metadata)
         return
 
     if event_name == "error":
@@ -245,6 +258,10 @@ if current_event or data_lines:
 if return_code != 0 and not event_error:
     if stderr_output:
         print(stderr_output, file=sys.stderr, end="")
+    print(file=sys.stderr)
+    print("Request failed.", file=sys.stderr)
+    print(f"Is the app running at {os.environ['BASE_URL']}?", file=sys.stderr)
+    print("Try ./scripts/run-local.sh", file=sys.stderr)
     sys.exit(return_code)
 PY
   parser_status=$?
@@ -255,6 +272,7 @@ set -e
 if [[ "${OUTPUT_MODE}" == "raw" ]]; then
   curl_status=${curl_status:-0}
   if [[ "${curl_status}" -ne 0 ]]; then
+    print_request_failure_hint
     exit "${curl_status}"
   fi
 else

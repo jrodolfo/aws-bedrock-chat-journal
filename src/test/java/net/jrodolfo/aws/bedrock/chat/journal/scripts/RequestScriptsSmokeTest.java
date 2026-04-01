@@ -42,6 +42,8 @@ class RequestScriptsSmokeTest {
         assertThat(result.exitCode()).isZero();
         assertThat(result.stdout()).contains("Opens an interactive terminal chat loop");
         assertThat(result.stdout()).contains("/stream on");
+        assertThat(result.stdout()).contains("/metadata on");
+        assertThat(result.stdout()).contains("/history");
     }
 
     @Test
@@ -49,13 +51,14 @@ class RequestScriptsSmokeTest {
         ProcessResult result = runScriptWithInput(
                 Path.of("scripts/chat.sh"),
                 Map.of("SESSION_ID", "session-1", "STREAM", "true"),
-                "/session\n/stream off\n/help\n/exit\n"
+                "/session\n/stream off\n/metadata off\n/help\n/exit\n"
         );
 
         assertThat(result.exitCode()).isZero();
         assertThat(result.stdout()).contains("Session ID: session-1");
         assertThat(result.stdout()).contains("Mode: streaming");
         assertThat(result.stdout()).contains("Streaming disabled.");
+        assertThat(result.stdout()).contains("Metadata disabled.");
         assertThat(result.stdout()).contains("Commands:");
         assertThat(result.stdout()).contains("Goodbye.");
     }

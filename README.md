@@ -563,6 +563,8 @@ Optional environment variables:
 
 Use `send-message.sh` for quick checks and shorter replies. Use `stream-message.sh` when you want faster feedback, a more conversational feel, or you want to observe Bedrock streaming behavior directly.
 
+When the backend is unavailable, the API-focused helper scripts print a short hint that points you back to `./scripts/run-local.sh`.
+
 ### Chat interactively
 
 Use this script when you want to stay in a terminal chat loop instead of sending one message at a time:
@@ -590,7 +592,8 @@ Behavior:
 - reuses `SESSION_ID` when provided
 - otherwise creates a new session automatically
 - defaults to streaming mode
-- supports `/help`, `/session`, `/stream on`, `/stream off`, `/reset`, and `/exit`
+- supports `/help`, `/session`, `/model`, `/prompt`, `/history`, `/stream on`, `/stream off`, `/metadata on`, `/metadata off`, `/reset`, and `/exit`
+- can hide or show response metadata during the chat loop
 
 ### Reset an existing session
 

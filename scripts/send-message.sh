@@ -45,13 +45,23 @@ if [[ -z "${SESSION_ID}" ]]; then
   exit 1
 fi
 
+run_curl() {
+  if ! curl --silent --show-error "$@"; then
+    echo >&2
+    echo "Request failed." >&2
+    echo "Is the app running at ${BASE_URL}?" >&2
+    echo "Try ./scripts/run-local.sh" >&2
+    exit 1
+  fi
+}
+
 echo "== Get current session =="
-curl --silent --show-error "${BASE_URL}/api/sessions/${SESSION_ID}"
+run_curl "${BASE_URL}/api/sessions/${SESSION_ID}"
 echo
 echo
 
 echo "== Send message =="
-curl --silent --show-error \
+run_curl \
   --request POST \
   --header "Content-Type: application/json" \
   --data "{
@@ -62,5 +72,5 @@ echo
 echo
 
 echo "== Get updated session =="
-curl --silent --show-error "${BASE_URL}/api/sessions/${SESSION_ID}"
+run_curl "${BASE_URL}/api/sessions/${SESSION_ID}"
 echo

@@ -40,7 +40,17 @@ if [[ -z "${SESSION_ID}" ]]; then
   exit 1
 fi
 
-curl --silent --show-error \
+run_curl() {
+  if ! curl --silent --show-error "$@"; then
+    echo >&2
+    echo "Request failed." >&2
+    echo "Is the app running at ${BASE_URL}?" >&2
+    echo "Try ./scripts/run-local.sh" >&2
+    exit 1
+  fi
+}
+
+run_curl \
   --request POST \
   "${BASE_URL}/api/sessions/${SESSION_ID}/reset"
 echo

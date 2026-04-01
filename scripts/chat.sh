@@ -8,6 +8,7 @@ SESSION_ID="${SESSION_ID:-}"
 MODEL_ID="${MODEL_ID:-amazon.nova-lite-v1:0}"
 SYSTEM_PROMPT="${SYSTEM_PROMPT:-You are a helpful AWS study assistant.}"
 STREAM="${STREAM:-true}"
+SHOW_METADATA="${SHOW_METADATA:-true}"
 
 usage() {
   cat <<EOF
@@ -38,11 +39,19 @@ Optional environment variables:
   STREAM          true or false
                   Default: true
 
+  SHOW_METADATA   true or false
+                  Default: true
+
 Commands:
   /help           Show chat commands
   /session        Show current session info
+  /model          Show the current session model
+  /prompt         Show the current system prompt
+  /history        Show the stored conversation
   /stream on      Enable streaming replies
   /stream off     Disable streaming replies
+  /metadata on    Show metadata after replies
+  /metadata off   Hide metadata after replies
   /reset          Reset the current session messages
   /exit           Exit the chat
 
@@ -71,14 +80,27 @@ normalize_stream_mode() {
 }
 
 STREAM_MODE="$(normalize_stream_mode "${STREAM}")"
+SHOW_METADATA_MODE="$(normalize_stream_mode "${SHOW_METADATA}")"
+
+print_request_failure_hint() {
+  echo >&2
+  echo "Request failed." >&2
+  echo "Is the app running at ${BASE_URL}?" >&2
+  echo "Try ./scripts/run-local.sh" >&2
+}
 
 print_chat_help() {
   cat <<EOF
 Commands:
   /help
   /session
+  /model
+  /prompt
+  /history
   /stream on
   /stream off
+  /metadata on
+  /metadata off
   /reset
   /exit
 EOF
@@ -86,12 +108,17 @@ EOF
 
 print_session_info() {
   local mode_label="streaming"
+  local metadata_label="on"
   if [[ "${STREAM_MODE}" != "true" ]]; then
     mode_label="non-streaming"
+  fi
+  if [[ "${SHOW_METADATA_MODE}" != "true" ]]; then
+    metadata_label="off"
   fi
 
   echo "Session ID: ${SESSION_ID}"
   echo "Mode: ${mode_label}"
+  echo "Metadata: ${metadata_label}"
   echo "Base URL: ${BASE_URL}"
 }
 
@@ -122,6 +149,74 @@ print(json.dumps({"text": os.environ["MESSAGE_TEXT"]}))
 PY
 }
 
+curl_json_request() {
+  if ! curl --silent --show-error "$@"; then
+    print_request_failure_hint
+    return 1
+  fi
+}
+
+fetch_current_session() {
+  curl_json_request "${BASE_URL}/api/sessions/${SESSION_ID}"
+}
+
+print_current_model() {
+  local session_json
+  session_json="$(fetch_current_session)" || return 1
+
+  SESSION_JSON="${session_json}" python3 - <<'PY'
+import json
+import os
+
+session = json.loads(os.environ["SESSION_JSON"])
+print("Model: " + str(session.get("modelId") or "(none)"))
+PY
+}
+
+print_current_prompt() {
+  local session_json
+  session_json="$(fetch_current_session)" || return 1
+
+  SESSION_JSON="${session_json}" python3 - <<'PY'
+import json
+import os
+
+session = json.loads(os.environ["SESSION_JSON"])
+prompt = session.get("systemPrompt")
+if prompt:
+    print("System prompt:")
+    print(prompt)
+else:
+    print("System prompt: (none)")
+PY
+}
+
+print_history() {
+  local session_json
+  session_json="$(fetch_current_session)" || return 1
+
+  SESSION_JSON="${session_json}" python3 - <<'PY'
+import json
+import os
+
+session = json.loads(os.environ["SESSION_JSON"])
+messages = session.get("messages") or []
+
+if not messages:
+    print("No messages in this session.")
+    raise SystemExit(0)
+
+for index, message in enumerate(messages, start=1):
+    role = message.get("role", "unknown")
+    print(f"[{index}] {role}")
+    for block in message.get("content") or []:
+        text = block.get("text")
+        if text:
+            print(text)
+    print()
+PY
+}
+
 create_session_if_needed() {
   if [[ -n "${SESSION_ID}" ]]; then
     return
@@ -130,38 +225,52 @@ create_session_if_needed() {
   echo "Creating a new session..."
   local create_response
   create_response="$(
-    curl --silent --show-error \
+    curl_json_request \
       --request POST \
       --header "Content-Type: application/json" \
       --data "$(build_create_payload)" \
       "${BASE_URL}/api/sessions"
-  )"
+  )" || exit 1
 
   SESSION_ID="$(
     CREATE_RESPONSE="${create_response}" python3 - <<'PY'
 import json
 import os
+import sys
 
-response = json.loads(os.environ["CREATE_RESPONSE"])
+try:
+    response = json.loads(os.environ["CREATE_RESPONSE"])
+except json.JSONDecodeError:
+    print("Failed to parse create-session response as JSON.", file=sys.stderr)
+    print(os.environ["CREATE_RESPONSE"], file=sys.stderr)
+    raise SystemExit(1)
+
 print(response["sessionId"])
 PY
-  )"
+  )" || {
+    echo "Session creation did not return a valid JSON body." >&2
+    exit 1
+  }
 
   echo "Created session: ${SESSION_ID}"
 }
 
 print_non_streaming_response() {
-  RESPONSE_JSON="${1}" python3 - <<'PY'
+  RESPONSE_JSON="${1}" SHOW_METADATA_MODE="${SHOW_METADATA_MODE}" python3 - <<'PY'
 import json
 import os
 
 response = json.loads(os.environ["RESPONSE_JSON"])
 reply = response.get("reply", "")
 metadata = response.get("metadata") or {}
+show_metadata = os.environ.get("SHOW_METADATA_MODE") == "true"
 
 print("Assistant reply:")
 print(reply)
 print()
+
+if not show_metadata:
+    raise SystemExit(0)
 
 requested_at = metadata.get("requestedAt")
 responded_at = metadata.get("respondedAt")
@@ -200,9 +309,12 @@ reset_current_session() {
     return
   fi
 
-  curl --silent --show-error \
+  if ! curl --silent --show-error \
     --request POST \
-    "${BASE_URL}/api/sessions/${SESSION_ID}/reset" >/dev/null
+    "${BASE_URL}/api/sessions/${SESSION_ID}/reset" >/dev/null; then
+    print_request_failure_hint
+    return 1
+  fi
 
   echo "Session reset."
 }
@@ -210,18 +322,18 @@ reset_current_session() {
 send_non_streaming_message() {
   local response
   response="$(
-    curl --silent --show-error \
+    curl_json_request \
       --request POST \
       --header "Content-Type: application/json" \
       --data "$(build_message_payload "$1")" \
       "${BASE_URL}/api/sessions/${SESSION_ID}/messages"
-  )"
+  )" || return 1
 
   print_non_streaming_response "${response}"
 }
 
 send_streaming_message() {
-  BASE_URL="${BASE_URL}" SESSION_ID="${SESSION_ID}" MESSAGE_TEXT="$1" "${SCRIPT_DIR}/stream-message.sh"
+  BASE_URL="${BASE_URL}" SESSION_ID="${SESSION_ID}" MESSAGE_TEXT="$1" SHOW_METADATA="${SHOW_METADATA_MODE}" "${SCRIPT_DIR}/stream-message.sh"
 }
 
 create_session_if_needed
@@ -249,6 +361,15 @@ while true; do
     /session)
       print_session_info
       ;;
+    /model)
+      print_current_model || true
+      ;;
+    /prompt)
+      print_current_prompt || true
+      ;;
+    /history)
+      print_history || true
+      ;;
     "/stream on")
       STREAM_MODE="true"
       echo "Streaming enabled."
@@ -256,6 +377,14 @@ while true; do
     "/stream off")
       STREAM_MODE="false"
       echo "Streaming disabled."
+      ;;
+    "/metadata on")
+      SHOW_METADATA_MODE="true"
+      echo "Metadata enabled."
+      ;;
+    "/metadata off")
+      SHOW_METADATA_MODE="false"
+      echo "Metadata disabled."
       ;;
     /reset)
       reset_current_session
