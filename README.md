@@ -588,6 +588,7 @@ Behavior:
 - sends the same prompt to both models
 - saves one comparison JSON report under `data/comparisons/`
 - computes a small summary showing things like faster model, lower token usage, and shorter reply
+- optionally adds a Bedrock-generated semantic summary of the key differences between the two replies
 - prints both replies and their metadata
 - deletes the temporary sessions after the comparison
 

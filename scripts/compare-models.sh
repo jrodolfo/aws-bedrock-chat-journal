@@ -8,10 +8,12 @@ BASE_URL="${BASE_URL:-http://localhost:8080}"
 COMPARISONS_DIR="${COMPARISONS_DIR:-${REPO_ROOT}/data/comparisons}"
 MODEL_A="${MODEL_A:-}"
 MODEL_B="${MODEL_B:-}"
+SUMMARY_MODEL="${SUMMARY_MODEL:-}"
 SYSTEM_PROMPT="${SYSTEM_PROMPT:-You are a helpful AWS study assistant.}"
 MESSAGE_TEXT="${MESSAGE_TEXT:-}"
 SESSION_A=""
 SESSION_B=""
+SESSION_SUMMARY=""
 
 usage() {
   cat <<EOF
@@ -38,6 +40,9 @@ Optional environment variables:
 
   SYSTEM_PROMPT   System prompt used for both temporary sessions
                   Default: You are a helpful AWS study assistant.
+
+  SUMMARY_MODEL  Optional model used to generate a semantic key-differences summary
+                 Default: MODEL_B
 
   COMPARISONS_DIR Directory where comparison JSON reports are saved
                   Default: <repo-root>/data/comparisons
@@ -162,19 +167,94 @@ delete_temp_session() {
 cleanup() {
   delete_temp_session "${SESSION_A}"
   delete_temp_session "${SESSION_B}"
+  delete_temp_session "${SESSION_SUMMARY}"
 }
 
 trap cleanup EXIT
+
+if [[ -z "${SUMMARY_MODEL}" ]]; then
+  SUMMARY_MODEL="${MODEL_B}"
+fi
 
 SESSION_A="$(create_temp_session "${MODEL_A}")"
 SESSION_B="$(create_temp_session "${MODEL_B}")"
 
 RESPONSE_A="$(send_message "${SESSION_A}")"
 RESPONSE_B="$(send_message "${SESSION_B}")"
+SUMMARY_RESPONSE=""
+
+build_summary_prompt() {
+  MESSAGE_TEXT="${MESSAGE_TEXT}" RESPONSE_A="${RESPONSE_A}" RESPONSE_B="${RESPONSE_B}" MODEL_A="${MODEL_A}" MODEL_B="${MODEL_B}" python3 - <<'PY'
+import json
+import os
+
+response_a = json.loads(os.environ["RESPONSE_A"])
+response_b = json.loads(os.environ["RESPONSE_B"])
+
+reply_a = response_a.get("reply", "")
+reply_b = response_b.get("reply", "")
+
+prompt = f"""Compare these two Bedrock model replies to the same prompt.
+
+Original prompt:
+{os.environ.get('MESSAGE_TEXT', '')}
+
+Model A: {os.environ['MODEL_A']}
+Reply A:
+{reply_a}
+
+Model B: {os.environ['MODEL_B']}
+Reply B:
+{reply_b}
+
+Write a short comparison that focuses on:
+- style differences
+- level of detail
+- clarity
+- likely usefulness for AWS exam study
+
+Be concise. Do not invent facts beyond the two replies."""
+
+print(prompt)
+PY
+}
+
+build_summary_message_payload() {
+  SUMMARY_PROMPT="$1" python3 - <<'PY'
+import json
+import os
+
+print(json.dumps({"text": os.environ["SUMMARY_PROMPT"]}))
+PY
+}
+
+generate_semantic_summary() {
+  local summary_prompt="$1"
+  local summary_response
+
+  SESSION_SUMMARY="$(create_temp_session "${SUMMARY_MODEL}")" || return 1
+
+  summary_response="$(
+    run_curl \
+      --request POST \
+      --header "Content-Type: application/json" \
+      --data "$(build_summary_message_payload "${summary_prompt}")" \
+      "${BASE_URL}/api/sessions/${SESSION_SUMMARY}/messages"
+  )" || return 1
+
+  printf '%s' "${summary_response}"
+}
+
+SUMMARY_PROMPT="$(MESSAGE_TEXT="${MESSAGE_TEXT}" build_summary_prompt)"
+if SUMMARY_RESPONSE="$(generate_semantic_summary "${SUMMARY_PROMPT}" 2>/dev/null)"; then
+  :
+else
+  SUMMARY_RESPONSE=""
+fi
 
 REPORT_PATH="$(
-  MODEL_A="${MODEL_A}" MODEL_B="${MODEL_B}" SYSTEM_PROMPT="${SYSTEM_PROMPT}" MESSAGE_TEXT="${MESSAGE_TEXT}" \
-  RESPONSE_A="${RESPONSE_A}" RESPONSE_B="${RESPONSE_B}" COMPARISONS_DIR="${COMPARISONS_DIR}" python3 - <<'PY'
+  MODEL_A="${MODEL_A}" MODEL_B="${MODEL_B}" SUMMARY_MODEL="${SUMMARY_MODEL}" SYSTEM_PROMPT="${SYSTEM_PROMPT}" MESSAGE_TEXT="${MESSAGE_TEXT}" \
+  RESPONSE_A="${RESPONSE_A}" RESPONSE_B="${RESPONSE_B}" SUMMARY_RESPONSE="${SUMMARY_RESPONSE}" COMPARISONS_DIR="${COMPARISONS_DIR}" python3 - <<'PY'
 import json
 import os
 import uuid
@@ -251,6 +331,11 @@ def summary_for_models(report: dict) -> dict:
 
 report["summary"] = summary_for_models(report)
 
+if os.environ.get("SUMMARY_RESPONSE"):
+    summary_response = json.loads(os.environ["SUMMARY_RESPONSE"])
+    report["summary"]["generatedByModelId"] = os.environ["SUMMARY_MODEL"]
+    report["summary"]["keyDifferences"] = summary_response.get("reply", "")
+
 with report_path.open("w", encoding="utf-8") as handle:
     json.dump(report, handle, indent=2)
     handle.write("\n")
@@ -271,6 +356,7 @@ import os
 
 response_a = json.loads(os.environ["RESPONSE_A"])
 response_b = json.loads(os.environ["RESPONSE_B"])
+summary_response = json.loads(os.environ["SUMMARY_RESPONSE"]) if os.environ.get("SUMMARY_RESPONSE") else None
 metadata_a = response_a.get("metadata") or {}
 metadata_b = response_b.get("metadata") or {}
 
@@ -305,6 +391,11 @@ elif length_b < length_a:
     print(f"Shorter reply: {os.environ['MODEL_B']} ({abs(length_a - length_b)} chars shorter)")
 else:
     print("Shorter reply: tie")
+
+if summary_response and summary_response.get("reply"):
+    print()
+    print(f"Key differences ({os.environ['SUMMARY_MODEL']}):")
+    print(summary_response["reply"])
 
 print()
 

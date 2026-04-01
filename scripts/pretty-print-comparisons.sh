@@ -160,6 +160,8 @@ def print_summary(summary: dict) -> None:
     shorter_reply_model = summary.get("shorterReplyModel")
     longer_reply_model = summary.get("longerReplyModel")
     reply_length_diff = summary.get("replyLengthDifference")
+    generated_by_model = summary.get("generatedByModelId")
+    key_differences = summary.get("keyDifferences")
 
     if faster_model:
         if faster_model == "tie":
@@ -187,6 +189,14 @@ def print_summary(summary: dict) -> None:
 
     if longer_reply_model and longer_reply_model != "tie":
         print(f"  longerReplyModel: {longer_reply_model}")
+
+    if generated_by_model:
+        print(f"  generatedByModelId: {generated_by_model}")
+
+    if key_differences:
+        print("  keyDifferences:")
+        for line in normalize_markdown(key_differences).splitlines():
+            print(f"    {line}")
 
 print(f"comparisonId: {comparison.get('comparisonId', '-')}")
 print(f"createdAt: {comparison.get('createdAt', '-')}")

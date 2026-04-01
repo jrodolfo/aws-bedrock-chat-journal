@@ -132,7 +132,9 @@ class RequestScriptsSmokeTest {
                     "tokenDifference": 15,
                     "shorterReplyModel": "amazon.nova-lite-v1:0",
                     "longerReplyModel": "amazon.nova-pro-v1:0",
-                    "replyLengthDifference": 12
+                    "replyLengthDifference": 12,
+                    "generatedByModelId": "amazon.nova-pro-v1:0",
+                    "keyDifferences": "Model B is more detailed, while Model A is more concise."
                   },
                   "modelA": {
                     "modelId": "amazon.nova-lite-v1:0",
@@ -164,6 +166,9 @@ class RequestScriptsSmokeTest {
         assertThat(result.stdout()).contains("Explain Converse API");
         assertThat(result.stdout()).contains("summary:");
         assertThat(result.stdout()).contains("fasterModel: amazon.nova-lite-v1:0 (200 ms faster)");
+        assertThat(result.stdout()).contains("generatedByModelId: amazon.nova-pro-v1:0");
+        assertThat(result.stdout()).contains("keyDifferences:");
+        assertThat(result.stdout()).contains("Model B is more detailed, while Model A is more concise.");
         assertThat(result.stdout()).contains("Model A");
         assertThat(result.stdout()).contains("Fast answer");
         assertThat(result.stdout()).contains("durationMs: 1000");
