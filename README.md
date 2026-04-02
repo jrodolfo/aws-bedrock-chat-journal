@@ -531,6 +531,7 @@ On Windows, run the scripts in this section from Git Bash unless the command exp
 A small runnable curl collection is included here:
 
 [`scripts/curl-examples.sh`](scripts/curl-examples.sh)
+[`scripts/check-backend.sh`](scripts/check-backend.sh)
 [`scripts/list-sessions.sh`](scripts/list-sessions.sh)
 [`scripts/reset-session.sh`](scripts/reset-session.sh)
 [`scripts/run-local.sh`](scripts/run-local.sh)
@@ -542,6 +543,37 @@ Run it:
 
 ```bash
 ./scripts/curl-examples.sh
+```
+
+### Check backend health
+
+Use this script when you only want to confirm that the Spring Boot backend is reachable before running the more API-heavy helpers:
+
+```bash
+./scripts/check-backend.sh
+```
+
+Show help:
+
+```bash
+./scripts/check-backend.sh --help
+```
+
+What the script does:
+
+- Calls `GET /api/health`
+- Confirms that the response JSON contains `status=OK`
+- Exits non-zero with a short hint when the backend is unavailable
+
+Optional environment variables:
+
+- `BASE_URL`
+  Default: `http://localhost:8080`
+
+Example:
+
+```bash
+BASE_URL=http://localhost:8081 ./scripts/check-backend.sh
 ```
 
 ### Usage

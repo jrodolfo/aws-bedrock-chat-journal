@@ -1,8 +1,12 @@
 package net.jrodolfo.aws.bedrock.chat.journal.scripts;
 
+import com.sun.net.httpserver.HttpExchange;
+import com.sun.net.httpserver.HttpServer;
 import java.io.IOException;
+import java.net.InetSocketAddress;
 import java.nio.file.Files;
 import java.nio.file.Path;
+import java.nio.charset.StandardCharsets;
 import java.util.LinkedHashMap;
 import java.util.Map;
 import org.junit.jupiter.api.Assumptions;
@@ -25,6 +29,67 @@ class RequestScriptsSmokeTest {
         assertThat(result.exitCode()).isZero();
         assertThat(result.stdout()).contains("Usage:");
         assertThat(result.stdout()).contains("curl-examples.sh");
+    }
+
+    @Test
+    void checkBackendHelpWorks() throws Exception {
+        ProcessResult result = runScript(Path.of("scripts/check-backend.sh"), Map.of(), "--help");
+
+        assertThat(result.exitCode()).isZero();
+        assertThat(result.stdout()).contains("Calls GET /api/health");
+        assertThat(result.stdout()).contains("BASE_URL");
+    }
+
+    @Test
+    void checkBackendFailsWhenUnavailable() throws Exception {
+        ProcessResult result = runScript(
+                Path.of("scripts/check-backend.sh"),
+                Map.of("BASE_URL", "http://localhost:1")
+        );
+
+        assertThat(result.exitCode()).isNotZero();
+        assertThat(result.stderr()).contains("Request failed.");
+        assertThat(result.stderr()).contains("Try ./scripts/run-local.sh");
+    }
+
+    @Test
+    void checkBackendSucceedsWhenHealthEndpointReturnsOk() throws Exception {
+        HttpServer server = startHealthServer(200, """
+                {"status":"OK"}
+                """);
+
+        try {
+            ProcessResult result = runScript(
+                    Path.of("scripts/check-backend.sh"),
+                    Map.of("BASE_URL", "http://127.0.0.1:" + server.getAddress().getPort())
+            );
+
+            assertThat(result.exitCode()).isZero();
+            assertThat(result.stdout()).contains("Backend is up.");
+            assertThat(result.stdout()).contains("Health status: OK");
+        } finally {
+            server.stop(0);
+        }
+    }
+
+    @Test
+    void checkBackendFailsWhenHealthPayloadIsUnexpected() throws Exception {
+        HttpServer server = startHealthServer(200, """
+                {"status":"DOWN"}
+                """);
+
+        try {
+            ProcessResult result = runScript(
+                    Path.of("scripts/check-backend.sh"),
+                    Map.of("BASE_URL", "http://127.0.0.1:" + server.getAddress().getPort())
+            );
+
+            assertThat(result.exitCode()).isNotZero();
+            assertThat(result.stderr()).contains("Unexpected health response");
+            assertThat(result.stderr()).contains("status=OK");
+        } finally {
+            server.stop(0);
+        }
     }
 
     @Test
@@ -765,6 +830,21 @@ class RequestScriptsSmokeTest {
 
     private ProcessResult runScript(Path scriptPath, Map<String, String> env, String... args) throws Exception {
         return runScriptWithInput(scriptPath, env, "", args);
+    }
+
+    private HttpServer startHealthServer(int statusCode, String responseBody) throws IOException {
+        HttpServer server = HttpServer.create(new InetSocketAddress("127.0.0.1", 0), 0);
+        server.createContext("/api/health", exchange -> writeJsonResponse(exchange, statusCode, responseBody.strip()));
+        server.start();
+        return server;
+    }
+
+    private void writeJsonResponse(HttpExchange exchange, int statusCode, String responseBody) throws IOException {
+        byte[] responseBytes = responseBody.getBytes(StandardCharsets.UTF_8);
+        exchange.getResponseHeaders().add("Content-Type", "application/json");
+        exchange.sendResponseHeaders(statusCode, responseBytes.length);
+        exchange.getResponseBody().write(responseBytes);
+        exchange.close();
     }
 
     private ProcessResult runScriptWithInput(Path scriptPath, Map<String, String> env, String stdin, String... args) throws Exception {
