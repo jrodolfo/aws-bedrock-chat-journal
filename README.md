@@ -604,6 +604,14 @@ Use this script when you already have a `sessionId` and want to send another mes
 Example:
 
 ```bash
+./scripts/send-message.sh your-session-id
+```
+
+That form prompts you for the message text interactively.
+
+If you want to send the message non-interactively, pass it explicitly:
+
+```bash
 ./scripts/send-message.sh \
   your-session-id \
   "Continue the previous explanation and compare Converse with InvokeModel."
@@ -622,7 +630,6 @@ Optional environment variables:
   Default: `http://localhost:8080`
 - `MESSAGE_TEXT`
   Used when no positional `message-text` is provided
-  Default: `Continue the conversation.`
 
 The older environment-variable form still works:
 

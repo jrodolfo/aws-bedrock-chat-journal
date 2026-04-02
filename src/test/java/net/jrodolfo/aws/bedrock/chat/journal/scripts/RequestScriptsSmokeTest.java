@@ -353,6 +353,7 @@ class RequestScriptsSmokeTest {
 
         assertThat(result.exitCode()).isZero();
         assertThat(result.stdout()).contains("./scripts/send-message.sh <session-id>");
+        assertThat(result.stdout()).contains("prompts for message text interactively");
         assertThat(result.stdout()).contains("SESSION_ID=<session-id>");
     }
 
@@ -365,12 +366,11 @@ class RequestScriptsSmokeTest {
     }
 
     @Test
-    void sendMessageAcceptsSessionIdAsPositionalArgument() throws Exception {
+    void sendMessageRequiresMessageTextWhenRunningNonInteractively() throws Exception {
         ProcessResult result = runScript(Path.of("scripts/send-message.sh"), Map.of(), "session-123");
 
         assertThat(result.exitCode()).isNotZero();
-        assertThat(result.stderr()).contains("Request failed.");
-        assertThat(result.stderr()).contains("Is the app running at http://localhost:8080?");
+        assertThat(result.stderr()).contains("MESSAGE_TEXT is required when running non-interactively.");
     }
 
     @Test
@@ -383,6 +383,20 @@ class RequestScriptsSmokeTest {
         );
 
         assertThat(result.exitCode()).isNotZero();
+        assertThat(result.stderr()).contains("Request failed.");
+    }
+
+    @Test
+    void sendMessageAcceptsInteractiveMessageInputWhenOnlySessionIdIsProvided() throws Exception {
+        ProcessResult result = runScriptWithInput(
+                Path.of("scripts/send-message.sh"),
+                Map.of("BASE_URL", "http://localhost:1"),
+                "Continue the previous explanation.\n",
+                "session-123"
+        );
+
+        assertThat(result.exitCode()).isNotZero();
+        assertThat(result.stdout()).contains("message>");
         assertThat(result.stderr()).contains("Request failed.");
     }
 

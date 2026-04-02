@@ -4,13 +4,14 @@ set -euo pipefail
 
 BASE_URL="${BASE_URL:-http://localhost:8080}"
 SESSION_ID="${SESSION_ID:-}"
-MESSAGE_TEXT="${MESSAGE_TEXT:-Continue the conversation.}"
+MESSAGE_TEXT="${MESSAGE_TEXT:-}"
 
 usage() {
   cat <<EOF
 Usage:
   ./scripts/send-message.sh <session-id>
   ./scripts/send-message.sh <session-id> "Compare Converse and InvokeModel."
+  ./scripts/send-message.sh <session-id>    # prompts for message text interactively
   SESSION_ID=<session-id> ./scripts/send-message.sh
   SESSION_ID=<session-id> MESSAGE_TEXT="Compare Converse and InvokeModel." ./scripts/send-message.sh
   BASE_URL=http://localhost:8080 SESSION_ID=<session-id> ./scripts/send-message.sh
@@ -22,7 +23,8 @@ What it does:
 
 Positional arguments:
   session-id      Existing session ID stored by the application
-  message-text    Optional user message sent to the existing session
+  message-text    Optional user message sent to the existing session.
+                  If omitted, the script prompts interactively.
 
 Optional environment variables:
   SESSION_ID      Existing session ID stored by the application when no positional session-id is provided
@@ -31,7 +33,6 @@ Optional environment variables:
                   Default: http://localhost:8080
 
   MESSAGE_TEXT    User message sent to the existing session when no positional message-text is provided
-                  Default: Continue the conversation.
 
 Options:
   -h, --help      Show this help message
@@ -62,6 +63,23 @@ if [[ -z "${SESSION_ID}" ]]; then
   echo "SESSION_ID is required." >&2
   echo >&2
   usage >&2
+  exit 1
+fi
+
+if [[ -z "${MESSAGE_TEXT}" ]]; then
+  if [[ -t 0 ]]; then
+    printf "message> "
+    read -r MESSAGE_TEXT
+  else
+    echo "MESSAGE_TEXT is required when running non-interactively." >&2
+    echo >&2
+    usage >&2
+    exit 1
+  fi
+fi
+
+if [[ -z "${MESSAGE_TEXT}" ]]; then
+  echo "MESSAGE_TEXT cannot be empty." >&2
   exit 1
 fi
 
