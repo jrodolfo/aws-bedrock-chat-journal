@@ -181,6 +181,26 @@ The Swagger UI includes the maintainer contact information from this project:
 
 The helper scripts in `scripts/` do not all have the same local dependencies.
 
+## Windows quick start
+
+If you are running this project on Windows, the simplest setup is:
+
+1. Install Java 21
+2. Install Git Bash
+3. Install Python 3
+4. Verify Python with `py -3 --version`
+5. Use Git Bash for the `.sh` helper scripts
+6. Optionally use PowerShell for `./scripts/build-and-test.ps1` and `./scripts/run-local.ps1`
+
+## Windows shell support
+
+On Windows, the support model is intentionally split:
+
+- Use Git Bash for the Bash helper scripts under `scripts/*.sh`
+- Use PowerShell only for the native wrappers `scripts/build-and-test.ps1` and `scripts/run-local.ps1`
+
+The project does not include a PowerShell version of every helper script. The richer helper workflows are documented and supported through Git Bash.
+
 These workflows do not require Python:
 
 - `./scripts/build-and-test.sh`
@@ -506,6 +526,8 @@ Session limit exceeded:
 
 ## Curl collection
 
+On Windows, run the scripts in this section from Git Bash unless the command explicitly uses one of the PowerShell wrappers.
+
 A small runnable curl collection is included here:
 
 [`scripts/curl-examples.sh`](scripts/curl-examples.sh)
@@ -621,6 +643,12 @@ Preferred positional arguments:
 
 - `session-id`
 - `message-text` (optional)
+
+This script follows the current helper-script convention:
+
+- prefer positional arguments for simple session-oriented commands
+- keep environment variables as a backward-compatible scripting option
+- prompt interactively when required input is omitted in an interactive terminal
 
 Optional environment variables:
 
@@ -876,6 +904,8 @@ Example:
 ./scripts/reset-session.sh your-session-id
 ```
 
+This script also prefers a positional `session-id`, while still accepting `SESSION_ID=...` for backward compatibility.
+
 The older environment-variable form still works:
 
 ```bash
@@ -957,6 +987,8 @@ If you want to inspect the raw SSE frames instead, use:
 ```bash
 ./scripts/stream-message.sh your-session-id --raw
 ```
+
+This script also prefers positional arguments, while still accepting `SESSION_ID=...` and `MESSAGE_TEXT=...` for backward compatibility.
 
 The older environment-variable form still works:
 
