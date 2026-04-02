@@ -647,6 +647,67 @@ class RequestScriptsSmokeTest {
         assertThat(result.stderr()).contains("SESSION_ID is required.");
     }
 
+    @Test
+    void commonScriptFallsBackToPyLauncherWhenWindowsStoreAliasesArePresent() throws Exception {
+        assumeBashAvailable();
+
+        Path windowsAppsDir = tempDir.resolve("WindowsApps");
+        Files.createDirectories(windowsAppsDir);
+        Path fakeBinDir = tempDir.resolve("bin");
+        Files.createDirectories(fakeBinDir);
+
+        writeScript(windowsAppsDir.resolve("python"), """
+                #!/usr/bin/env bash
+                echo "windows store alias" >&2
+                exit 1
+                """);
+        writeScript(windowsAppsDir.resolve("python3"), """
+                #!/usr/bin/env bash
+                echo "windows store alias" >&2
+                exit 1
+                """);
+        writeScript(fakeBinDir.resolve("py"), """
+                #!/usr/bin/env bash
+                if [[ "${1:-}" == "-3" ]]; then
+                  shift
+                fi
+
+                if [[ "${1:-}" == "-c" && "${2:-}" == *"sys.version_info"* ]]; then
+                  exit 0
+                fi
+
+                if [[ "${1:-}" == "-c" && "${2:-}" == "print('launcher-ok')" ]]; then
+                  printf 'launcher-ok\\n'
+                  exit 0
+                fi
+
+                echo "unexpected args: $*" >&2
+                exit 1
+                """);
+
+        String bashPath = requireBashPath();
+        String pathValue = windowsAppsDir + System.getProperty("path.separator")
+                + fakeBinDir + System.getProperty("path.separator")
+                + System.getenv("PATH");
+
+        ProcessBuilder processBuilder = new ProcessBuilder(
+                bashPath,
+                "-lc",
+                "source scripts/lib/common.sh && run_python -c \"print('launcher-ok')\""
+        );
+        processBuilder.directory(REPO_ROOT.toFile());
+        processBuilder.environment().put("PATH", pathValue);
+
+        Process process = processBuilder.start();
+        String stdout = readStream(process.getInputStream());
+        String stderr = readStream(process.getErrorStream());
+        int exitCode = process.waitFor();
+
+        assertThat(exitCode).isZero();
+        assertThat(stdout).contains("launcher-ok");
+        assertThat(stderr).doesNotContain("Python was not found");
+    }
+
     private ProcessResult runScript(Path scriptPath, Map<String, String> env, String... args) throws Exception {
         return runScriptWithInput(scriptPath, env, "", args);
     }
@@ -689,6 +750,19 @@ class RequestScriptsSmokeTest {
             }
             Assumptions.assumeTrue(false, "bash is required for script smoke tests");
         }
+    }
+
+    private String requireBashPath() throws Exception {
+        Process process = new ProcessBuilder("bash", "-lc", "command -v bash").start();
+        String stdout = readStream(process.getInputStream()).trim();
+        int exitCode = process.waitFor();
+        Assumptions.assumeTrue(exitCode == 0 && !stdout.isBlank(), "bash is required for script smoke tests");
+        return stdout;
+    }
+
+    private void writeScript(Path path, String content) throws IOException {
+        Files.writeString(path, content);
+        path.toFile().setExecutable(true);
     }
 
     private String readStream(java.io.InputStream inputStream) throws IOException {

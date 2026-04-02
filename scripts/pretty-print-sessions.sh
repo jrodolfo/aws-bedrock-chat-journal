@@ -5,7 +5,6 @@ set -euo pipefail
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 REPO_ROOT="$(cd "${SCRIPT_DIR}/.." && pwd)"
 source "${SCRIPT_DIR}/lib/common.sh"
-PYTHON_BIN="$(find_python_bin)"
 DEFAULT_SESSIONS_DIR="${REPO_ROOT}/data/sessions"
 SESSIONS_DIR="${SESSIONS_DIR:-${DEFAULT_SESSIONS_DIR}}"
 OUTPUT_MODE="rendered"
@@ -67,12 +66,12 @@ for file in "${files[@]}"; do
   echo "== ${file} =="
 
   if [[ "${OUTPUT_MODE}" == "raw" ]]; then
-    "${PYTHON_BIN}" -m json.tool "${file}"
+    run_python -m json.tool "${file}"
     echo
     continue
   fi
 
-  "${PYTHON_BIN}" - "${file}" <<'PY'
+  run_python - "${file}" <<'PY'
 import json
 import re
 import sys

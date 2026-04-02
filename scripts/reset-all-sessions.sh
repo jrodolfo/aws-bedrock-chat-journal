@@ -5,7 +5,6 @@ set -euo pipefail
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 REPO_ROOT="$(cd "${SCRIPT_DIR}/.." && pwd)"
 source "${SCRIPT_DIR}/lib/common.sh"
-PYTHON_BIN="$(find_python_bin)"
 DEFAULT_SESSIONS_DIR="${REPO_ROOT}/data/sessions"
 SESSIONS_DIR="${SESSIONS_DIR:-${DEFAULT_SESSIONS_DIR}}"
 ASSUME_YES="false"
@@ -81,7 +80,7 @@ fi
 reset_count=0
 
 for file in "${files[@]}"; do
-  "${PYTHON_BIN}" - "${file}" <<'PY'
+  run_python - "${file}" <<'PY'
 import json
 import sys
 from pathlib import Path

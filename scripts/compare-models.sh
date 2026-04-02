@@ -5,7 +5,6 @@ set -euo pipefail
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 REPO_ROOT="$(cd "${SCRIPT_DIR}/.." && pwd)"
 source "${SCRIPT_DIR}/lib/common.sh"
-PYTHON_BIN="$(find_python_bin)"
 BASE_URL="${BASE_URL:-http://localhost:8080}"
 COMPARISONS_DIR="${COMPARISONS_DIR:-${REPO_ROOT}/data/comparisons}"
 MODEL_A="${MODEL_A:-}"
@@ -255,7 +254,7 @@ build_create_payload() {
   SESSION_TEMPERATURE="$3" \
   SESSION_TOP_P="$4" \
   SESSION_MAX_TOKENS="$5" \
-  "${PYTHON_BIN}" - <<'PY'
+  run_python - <<'PY'
 import json
 import os
 
@@ -284,7 +283,7 @@ PY
 }
 
 build_message_payload() {
-  MESSAGE_TEXT="${MESSAGE_TEXT}" "${PYTHON_BIN}" - <<'PY'
+  MESSAGE_TEXT="${MESSAGE_TEXT}" run_python - <<'PY'
 import json
 import os
 
@@ -308,7 +307,7 @@ create_temp_session() {
       "${BASE_URL}/api/sessions"
   )" || return 1
 
-  CREATE_RESPONSE="${create_response}" "${PYTHON_BIN}" - <<'PY'
+  CREATE_RESPONSE="${create_response}" run_python - <<'PY'
 import json
 import os
 import sys
@@ -370,7 +369,7 @@ RESPONSE_B="$(send_message "${SESSION_B}")"
 SUMMARY_RESPONSE=""
 
 build_summary_prompt() {
-  MESSAGE_TEXT="${MESSAGE_TEXT}" RESPONSE_A="${RESPONSE_A}" RESPONSE_B="${RESPONSE_B}" MODEL_A="${MODEL_A}" MODEL_B="${MODEL_B}" "${PYTHON_BIN}" - <<'PY'
+  MESSAGE_TEXT="${MESSAGE_TEXT}" RESPONSE_A="${RESPONSE_A}" RESPONSE_B="${RESPONSE_B}" MODEL_A="${MODEL_A}" MODEL_B="${MODEL_B}" run_python - <<'PY'
 import json
 import os
 
@@ -406,7 +405,7 @@ PY
 }
 
 build_summary_message_payload() {
-  SUMMARY_PROMPT="$1" "${PYTHON_BIN}" - <<'PY'
+  SUMMARY_PROMPT="$1" run_python - <<'PY'
 import json
 import os
 
@@ -446,7 +445,7 @@ REPORT_PATH="$(
   TOP_P_A="${TOP_P_A}" TOP_P_B="${TOP_P_B}" \
   MAX_TOKENS_A="${MAX_TOKENS_A}" MAX_TOKENS_B="${MAX_TOKENS_B}" \
   MESSAGE_TEXT="${MESSAGE_TEXT}" \
-  RESPONSE_A="${RESPONSE_A}" RESPONSE_B="${RESPONSE_B}" SUMMARY_RESPONSE="${SUMMARY_RESPONSE}" COMPARISONS_DIR="${COMPARISONS_DIR}" "${PYTHON_BIN}" - <<'PY'
+  RESPONSE_A="${RESPONSE_A}" RESPONSE_B="${RESPONSE_B}" SUMMARY_RESPONSE="${SUMMARY_RESPONSE}" COMPARISONS_DIR="${COMPARISONS_DIR}" run_python - <<'PY'
 import json
 import os
 import uuid
@@ -576,7 +575,7 @@ PROMPT_PRESET_A="${EFFECTIVE_PRESET_A}" PROMPT_PRESET_B="${EFFECTIVE_PRESET_B}" 
 TEMPERATURE_A="${TEMPERATURE_A}" TEMPERATURE_B="${TEMPERATURE_B}" \
 TOP_P_A="${TOP_P_A}" TOP_P_B="${TOP_P_B}" \
 MAX_TOKENS_A="${MAX_TOKENS_A}" MAX_TOKENS_B="${MAX_TOKENS_B}" \
-RESPONSE_A="${RESPONSE_A}" RESPONSE_B="${RESPONSE_B}" MODEL_A="${MODEL_A}" MODEL_B="${MODEL_B}" "${PYTHON_BIN}" - <<'PY'
+RESPONSE_A="${RESPONSE_A}" RESPONSE_B="${RESPONSE_B}" MODEL_A="${MODEL_A}" MODEL_B="${MODEL_B}" run_python - <<'PY'
 import json
 import os
 
