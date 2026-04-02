@@ -177,6 +177,37 @@ The Swagger UI includes the maintainer contact information from this project:
 - AWS credentials available through the default AWS credential chain
 - Bedrock model access enabled for the configured model in the configured region
 
+## Helper script requirements
+
+The helper scripts in `scripts/` do not all have the same local dependencies.
+
+These workflows do not require Python:
+
+- `./scripts/build-and-test.sh`
+- `./scripts/run-local.sh`
+- `./scripts/build-and-test.ps1`
+- `./scripts/run-local.ps1`
+
+These Bash helper scripts require Python 3 in addition to Bash:
+
+- `./scripts/list-sessions.sh`
+- `./scripts/pretty-print-sessions.sh`
+- `./scripts/list-comparisons.sh`
+- `./scripts/pretty-print-comparisons.sh`
+- `./scripts/comparison-stats.sh`
+- `./scripts/reset-all-sessions.sh`
+- `./scripts/stream-message.sh`
+- `./scripts/chat.sh`
+- `./scripts/compare-models.sh`
+
+On Windows, the scripts accept any of these working launch commands:
+
+- `python3`
+- `python`
+- `py -3`
+
+The Microsoft Store aliases for `python` and `python3` are not enough by themselves. If those aliases are enabled but Python is not actually installed, the scripts will stop with an explicit error message.
+
 If you want to use the helper scripts on Windows, install Git Bash and run them from a Git Bash session.
 
 The repository also includes native Windows PowerShell wrappers for the main local workflows:
