@@ -181,6 +181,15 @@ The Swagger UI includes the maintainer contact information from this project:
 
 The helper scripts in `scripts/` do not all have the same local dependencies.
 
+## Summary of scripts
+
+The project includes a collection of Bash and PowerShell scripts for:
+
+- environment checks and setup: verifying Java and Python requirements for local usage
+- API interaction: creating sessions, sending messages in synchronous or streaming mode, and resetting sessions
+- model comparison: comparing Bedrock models side by side, including saved reports and semantic summaries
+- data management: listing, pretty-printing, resetting, and deleting saved sessions or comparison reports
+
 ## Windows quick start
 
 If you are running this project on Windows, the simplest setup is:
