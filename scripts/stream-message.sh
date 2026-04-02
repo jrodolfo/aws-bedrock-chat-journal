@@ -13,6 +13,9 @@ SHOW_METADATA="${SHOW_METADATA:-true}"
 usage() {
   cat <<EOF
 Usage:
+  ./scripts/stream-message.sh <session-id>
+  ./scripts/stream-message.sh <session-id> --raw
+  ./scripts/stream-message.sh <session-id> "Explain streaming."
   SESSION_ID=<session-id> ./scripts/stream-message.sh
   SESSION_ID=<session-id> ./scripts/stream-message.sh --raw
   SESSION_ID=<session-id> MESSAGE_TEXT="Explain streaming." ./scripts/stream-message.sh
@@ -23,14 +26,17 @@ What it does:
   2. Prints streamed assistant text as it arrives
   3. Persists the final assistant reply only after successful completion
 
-Required environment variables:
-  SESSION_ID      Existing session ID stored by the application
+Positional arguments:
+  session-id      Existing session ID stored by the application
+  message-text    Optional user message sent to the existing session
 
 Optional environment variables:
+  SESSION_ID      Existing session ID stored by the application when no positional session-id is provided
+
   BASE_URL        API base URL
                   Default: http://localhost:8080
 
-  MESSAGE_TEXT    User message sent to the existing session
+  MESSAGE_TEXT    User message sent to the existing session when no positional message-text is provided
                   Default: Explain the Amazon Bedrock Converse API using streaming.
 
   SHOW_METADATA   true or false
@@ -52,14 +58,32 @@ while [[ $# -gt 0 ]]; do
       usage
       exit 0
       ;;
-    *)
+    --*)
       echo "Unknown option: $1" >&2
       echo >&2
       usage >&2
       exit 1
       ;;
+    *)
+      break
+      ;;
   esac
 done
+
+if [[ $# -gt 2 ]]; then
+  echo "Too many arguments." >&2
+  echo >&2
+  usage >&2
+  exit 1
+fi
+
+if [[ $# -ge 1 ]]; then
+  SESSION_ID="$1"
+fi
+
+if [[ $# -ge 2 ]]; then
+  MESSAGE_TEXT="$2"
+fi
 
 if [[ -z "${SESSION_ID}" ]]; then
   echo "SESSION_ID is required." >&2

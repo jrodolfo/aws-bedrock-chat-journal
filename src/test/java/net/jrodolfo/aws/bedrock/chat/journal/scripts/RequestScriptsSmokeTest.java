@@ -352,6 +352,7 @@ class RequestScriptsSmokeTest {
         ProcessResult result = runScript(Path.of("scripts/send-message.sh"), Map.of(), "--help");
 
         assertThat(result.exitCode()).isZero();
+        assertThat(result.stdout()).contains("./scripts/send-message.sh <session-id>");
         assertThat(result.stdout()).contains("SESSION_ID=<session-id>");
     }
 
@@ -361,6 +362,28 @@ class RequestScriptsSmokeTest {
 
         assertThat(result.exitCode()).isNotZero();
         assertThat(result.stderr()).contains("SESSION_ID is required.");
+    }
+
+    @Test
+    void sendMessageAcceptsSessionIdAsPositionalArgument() throws Exception {
+        ProcessResult result = runScript(Path.of("scripts/send-message.sh"), Map.of(), "session-123");
+
+        assertThat(result.exitCode()).isNotZero();
+        assertThat(result.stderr()).contains("Request failed.");
+        assertThat(result.stderr()).contains("Is the app running at http://localhost:8080?");
+    }
+
+    @Test
+    void sendMessageAcceptsMessageTextAsSecondPositionalArgument() throws Exception {
+        ProcessResult result = runScript(
+                Path.of("scripts/send-message.sh"),
+                Map.of("BASE_URL", "http://localhost:1"),
+                "session-123",
+                "Compare Converse and InvokeModel."
+        );
+
+        assertThat(result.exitCode()).isNotZero();
+        assertThat(result.stderr()).contains("Request failed.");
     }
 
     @Test
@@ -488,6 +511,7 @@ class RequestScriptsSmokeTest {
         ProcessResult result = runScript(Path.of("scripts/reset-session.sh"), Map.of(), "--help");
 
         assertThat(result.exitCode()).isZero();
+        assertThat(result.stdout()).contains("./scripts/reset-session.sh <session-id>");
         assertThat(result.stdout()).contains("Resets the message history");
     }
 
@@ -497,6 +521,14 @@ class RequestScriptsSmokeTest {
 
         assertThat(result.exitCode()).isNotZero();
         assertThat(result.stderr()).contains("SESSION_ID is required.");
+    }
+
+    @Test
+    void resetSessionAcceptsSessionIdAsPositionalArgument() throws Exception {
+        ProcessResult result = runScript(Path.of("scripts/reset-session.sh"), Map.of(), "session-123");
+
+        assertThat(result.exitCode()).isNotZero();
+        assertThat(result.stderr()).contains("Request failed.");
     }
 
     @Test
@@ -635,6 +667,7 @@ class RequestScriptsSmokeTest {
         ProcessResult result = runScript(Path.of("scripts/stream-message.sh"), Map.of(), "--help");
 
         assertThat(result.exitCode()).isZero();
+        assertThat(result.stdout()).contains("./scripts/stream-message.sh <session-id>");
         assertThat(result.stdout()).contains("Prints streamed assistant text as it arrives");
         assertThat(result.stdout()).contains("--raw");
     }
@@ -645,6 +678,14 @@ class RequestScriptsSmokeTest {
 
         assertThat(result.exitCode()).isNotZero();
         assertThat(result.stderr()).contains("SESSION_ID is required.");
+    }
+
+    @Test
+    void streamMessageAcceptsSessionIdAsPositionalArgument() throws Exception {
+        ProcessResult result = runScript(Path.of("scripts/stream-message.sh"), Map.of(), "session-123");
+
+        assertThat(result.exitCode()).isNotZero();
+        assertThat(result.stderr()).contains("Request failed.");
     }
 
     @Test

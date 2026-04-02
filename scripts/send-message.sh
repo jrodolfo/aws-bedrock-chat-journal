@@ -9,6 +9,8 @@ MESSAGE_TEXT="${MESSAGE_TEXT:-Continue the conversation.}"
 usage() {
   cat <<EOF
 Usage:
+  ./scripts/send-message.sh <session-id>
+  ./scripts/send-message.sh <session-id> "Compare Converse and InvokeModel."
   SESSION_ID=<session-id> ./scripts/send-message.sh
   SESSION_ID=<session-id> MESSAGE_TEXT="Compare Converse and InvokeModel." ./scripts/send-message.sh
   BASE_URL=http://localhost:8080 SESSION_ID=<session-id> ./scripts/send-message.sh
@@ -18,14 +20,17 @@ What it does:
   2. Sends one new message to that session
   3. Reads the updated session again
 
-Required environment variables:
-  SESSION_ID      Existing session ID stored by the application
+Positional arguments:
+  session-id      Existing session ID stored by the application
+  message-text    Optional user message sent to the existing session
 
 Optional environment variables:
+  SESSION_ID      Existing session ID stored by the application when no positional session-id is provided
+
   BASE_URL        API base URL
                   Default: http://localhost:8080
 
-  MESSAGE_TEXT    User message sent to the existing session
+  MESSAGE_TEXT    User message sent to the existing session when no positional message-text is provided
                   Default: Continue the conversation.
 
 Options:
@@ -36,6 +41,21 @@ EOF
 if [[ "${1:-}" == "-h" || "${1:-}" == "--help" ]]; then
   usage
   exit 0
+fi
+
+if [[ $# -gt 2 ]]; then
+  echo "Too many arguments." >&2
+  echo >&2
+  usage >&2
+  exit 1
+fi
+
+if [[ $# -ge 1 ]]; then
+  SESSION_ID="$1"
+fi
+
+if [[ $# -ge 2 ]]; then
+  MESSAGE_TEXT="$2"
 fi
 
 if [[ -z "${SESSION_ID}" ]]; then
