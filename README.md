@@ -604,21 +604,33 @@ Use this script when you already have a `sessionId` and want to send another mes
 Example:
 
 ```bash
+./scripts/send-message.sh \
+  your-session-id \
+  "Continue the previous explanation and compare Converse with InvokeModel."
+```
+
+Preferred positional arguments:
+
+- `session-id`
+- `message-text` (optional)
+
+Optional environment variables:
+
+- `SESSION_ID`
+  Used when no positional `session-id` is provided
+- `BASE_URL`
+  Default: `http://localhost:8080`
+- `MESSAGE_TEXT`
+  Used when no positional `message-text` is provided
+  Default: `Continue the conversation.`
+
+The older environment-variable form still works:
+
+```bash
 SESSION_ID=your-session-id \
 MESSAGE_TEXT="Continue the previous explanation and compare Converse with InvokeModel." \
 ./scripts/send-message.sh
 ```
-
-Required environment variables:
-
-- `SESSION_ID`
-
-Optional environment variables:
-
-- `BASE_URL`
-  Default: `http://localhost:8080`
-- `MESSAGE_TEXT`
-  Default: `Continue the conversation.`
 
 `send-message.sh` and `stream-message.sh` are similar in purpose because both send one message and then exit. The difference is in how the reply is delivered:
 
@@ -854,6 +866,12 @@ Use this script when you want to clear the stored messages for a session but kee
 Example:
 
 ```bash
+./scripts/reset-session.sh your-session-id
+```
+
+The older environment-variable form still works:
+
+```bash
 SESSION_ID=your-session-id ./scripts/reset-session.sh
 ```
 
@@ -918,9 +936,9 @@ Use this script when you want to see assistant text chunks as Bedrock streams th
 Example:
 
 ```bash
-SESSION_ID=your-session-id \
-MESSAGE_TEXT="Explain the Amazon Bedrock Converse API using streaming." \
-./scripts/stream-message.sh
+./scripts/stream-message.sh \
+  your-session-id \
+  "Explain the Amazon Bedrock Converse API using streaming."
 ```
 
 By default, the script renders only the assistant text in a readable terminal view and then prints a short completion summary.
@@ -930,7 +948,15 @@ The completion summary prioritizes request/response timestamps, duration, and to
 If you want to inspect the raw SSE frames instead, use:
 
 ```bash
-SESSION_ID=your-session-id ./scripts/stream-message.sh --raw
+./scripts/stream-message.sh your-session-id --raw
+```
+
+The older environment-variable form still works:
+
+```bash
+SESSION_ID=your-session-id \
+MESSAGE_TEXT="Explain the Amazon Bedrock Converse API using streaming." \
+./scripts/stream-message.sh
 ```
 
 ### Pretty-print stored sessions
