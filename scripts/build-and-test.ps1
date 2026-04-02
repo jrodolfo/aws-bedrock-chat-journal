@@ -4,6 +4,16 @@ $repoRoot = Split-Path -Parent $PSScriptRoot
 $gradleTasks = if ($env:GRADLE_TASKS) { $env:GRADLE_TASKS } else { "test build" }
 $requiredJavaMajor = 25
 
+function Fail-Script {
+    param(
+        [Parameter(Mandatory = $true)]
+        [string]$Message
+    )
+
+    [Console]::Error.WriteLine($Message)
+    exit 1
+}
+
 if ($args.Count -gt 0 -and ($args[0] -eq "-h" -or $args[0] -eq "--help")) {
     Write-Output @"
 Usage:
@@ -42,7 +52,7 @@ function Get-JavaMajorVersion {
 }
 
 if (-not (Get-Command java -ErrorAction SilentlyContinue)) {
-    Write-Error @"
+    Fail-Script @"
 Java $requiredJavaMajor is required, but 'java' is not on PATH.
 
 Install Java $requiredJavaMajor and set JAVA_HOME accordingly.
@@ -53,7 +63,7 @@ $javaCommand = Get-Command java -ErrorAction SilentlyContinue
 $javaVersionLine = Get-JavaVersionLine
 $javaMajor = Get-JavaMajorVersion
 if ($javaMajor -ne $requiredJavaMajor) {
-    Write-Error @"
+    Fail-Script @"
 Java $requiredJavaMajor is required, but found Java $javaMajor.
 Detected:
   $javaVersionLine
