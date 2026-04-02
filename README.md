@@ -1,4 +1,4 @@
-![java](https://img.shields.io/badge/java-21-orange)
+![java](https://img.shields.io/badge/java-25-orange)
 ![shell](https://img.shields.io/badge/shell-bash-89e051)
 ![spring boot](https://img.shields.io/badge/spring%20boot-3.5.13-6db33f)
 ![aws bedrock](https://img.shields.io/badge/aws-bedrock-ff9900)
@@ -10,7 +10,7 @@ Small Spring Boot REST API for learning the Amazon Bedrock Converse API with Jav
 
 ## Stack
 
-- Java 21
+- Java 25
 - Gradle (Groovy)
 - Spring Boot 3.5.13
 - AWS SDK for Java 2.x
@@ -173,7 +173,7 @@ The Swagger UI includes the maintainer contact information from this project:
 
 ## Local requirements
 
-- Java 21
+- Java 25
 - AWS credentials available through the default AWS credential chain
 - Bedrock model access enabled for the configured model in the configured region
 
@@ -185,7 +185,7 @@ The helper scripts in `scripts/` do not all have the same local dependencies.
 
 If you are running this project on Windows, the simplest setup is:
 
-1. Install Java 21
+1. Install Java 25
 2. Install Git Bash
 3. Install Python 3
 4. Verify Python with `py -3 --version`

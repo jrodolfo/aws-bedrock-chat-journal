@@ -2,7 +2,7 @@ $ErrorActionPreference = "Stop"
 
 $repoRoot = Split-Path -Parent $PSScriptRoot
 $gradleTasks = if ($env:GRADLE_TASKS) { $env:GRADLE_TASKS } else { "test build" }
-$requiredJavaMajor = 21
+$requiredJavaMajor = 25
 
 if ($args.Count -gt 0 -and ($args[0] -eq "-h" -or $args[0] -eq "--help")) {
     Write-Output @"
@@ -33,7 +33,7 @@ function Get-JavaVersionLine {
 
 function Get-JavaMajorVersion {
     $javaVersionLine = Get-JavaVersionLine
-    $match = [regex]::Match($javaVersionLine, 'version "([0-9]+)(\..*)?"')
+    $match = [regex]::Match($javaVersionLine, 'version "([0-9]+)')
     if (-not $match.Success) {
         throw "Unable to parse the installed Java version from: $javaVersionLine"
     }

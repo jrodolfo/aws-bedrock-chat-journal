@@ -5,7 +5,7 @@ set -euo pipefail
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 REPO_ROOT="$(cd "${SCRIPT_DIR}/.." && pwd)"
 GRADLE_TASKS="${GRADLE_TASKS:-test build}"
-REQUIRED_JAVA_MAJOR=21
+REQUIRED_JAVA_MAJOR=25
 
 usage() {
   cat <<EOF
@@ -30,7 +30,7 @@ if [[ "${1:-}" == "-h" || "${1:-}" == "--help" ]]; then
   exit 0
 fi
 
-require_java_21() {
+require_java_25() {
   if ! command -v java >/dev/null 2>&1; then
     cat <<EOF
 Error: Java ${REQUIRED_JAVA_MAJOR} is required, but 'java' is not on PATH.
@@ -47,7 +47,7 @@ EOF
   local java_version_output java_version_line java_major
   java_version_output="$(java -version 2>&1)"
   java_version_line="$(grep -m1 'version "' <<<"${java_version_output}" || true)"
-  java_major="$(sed -nE 's/.*version "([0-9]+)(\..*)?"/\1/p' <<<"${java_version_line}")"
+  java_major="$(sed -nE 's/.*version "([0-9]+).*/\1/p' <<<"${java_version_line}")"
 
   if [[ -z "${java_major}" ]]; then
     cat <<EOF
@@ -75,7 +75,7 @@ EOF
   fi
 }
 
-require_java_21
+require_java_25
 
 cd "${REPO_ROOT}"
 exec "${REPO_ROOT}/gradlew" ${GRADLE_TASKS}
