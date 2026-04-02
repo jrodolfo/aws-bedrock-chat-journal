@@ -21,7 +21,7 @@ Optional environment variables:
 }
 
 function Get-JavaVersionLine {
-    $javaVersionOutput = (& java -version 2>&1)
+    $javaVersionOutput = & cmd /c "java -version 2>&1"
     $javaVersionLine = $javaVersionOutput | Where-Object { $_ -match 'version "' } | Select-Object -First 1
     if (-not $javaVersionLine) {
         $renderedOutput = $javaVersionOutput -join [Environment]::NewLine
@@ -49,6 +49,7 @@ Install Java $requiredJavaMajor and set JAVA_HOME accordingly.
 "@
 }
 
+$javaCommand = Get-Command java -ErrorAction SilentlyContinue
 $javaVersionLine = Get-JavaVersionLine
 $javaMajor = Get-JavaMajorVersion
 if ($javaMajor -ne $requiredJavaMajor) {
@@ -56,6 +57,8 @@ if ($javaMajor -ne $requiredJavaMajor) {
 Java $requiredJavaMajor is required, but found Java $javaMajor.
 Detected:
   $javaVersionLine
+Path:
+  $($javaCommand.Source)
 
 Set JAVA_HOME to a Java $requiredJavaMajor installation and put it first on PATH.
 "@
