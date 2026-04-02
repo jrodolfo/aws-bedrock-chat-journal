@@ -2,6 +2,9 @@
 
 set -euo pipefail
 
+SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+source "${SCRIPT_DIR}/lib/common.sh"
+PYTHON_BIN="$(find_python_bin)"
 BASE_URL="${BASE_URL:-http://localhost:8080}"
 SESSION_ID="${SESSION_ID:-}"
 MESSAGE_TEXT="${MESSAGE_TEXT:-Explain the Amazon Bedrock Converse API using streaming.}"
@@ -90,7 +93,7 @@ if [[ "${OUTPUT_MODE}" == "raw" ]]; then
   run_curl
   curl_status=$?
 else
-  BASE_URL="${BASE_URL}" SESSION_ID="${SESSION_ID}" MESSAGE_TEXT="${MESSAGE_TEXT}" SHOW_METADATA="${SHOW_METADATA}" python3 - <<'PY'
+  BASE_URL="${BASE_URL}" SESSION_ID="${SESSION_ID}" MESSAGE_TEXT="${MESSAGE_TEXT}" SHOW_METADATA="${SHOW_METADATA}" "${PYTHON_BIN}" - <<'PY'
 import json
 import os
 import re

@@ -3,6 +3,8 @@
 set -euo pipefail
 
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+source "${SCRIPT_DIR}/lib/common.sh"
+PYTHON_BIN="$(find_python_bin)"
 BASE_URL="${BASE_URL:-http://localhost:8080}"
 SESSION_ID="${SESSION_ID:-}"
 MODEL_ID="${MODEL_ID:-amazon.nova-lite-v1:0}"
@@ -201,7 +203,7 @@ build_create_payload() {
     }
   fi
 
-  MODEL_ID="${MODEL_ID}" SYSTEM_PROMPT="${effective_prompt}" python3 - <<'PY'
+  MODEL_ID="${MODEL_ID}" SYSTEM_PROMPT="${effective_prompt}" "${PYTHON_BIN}" - <<'PY'
 import json
 import os
 
@@ -219,7 +221,7 @@ PY
 }
 
 build_message_payload() {
-  MESSAGE_TEXT="${1}" python3 - <<'PY'
+  MESSAGE_TEXT="${1}" "${PYTHON_BIN}" - <<'PY'
 import json
 import os
 
@@ -244,7 +246,7 @@ build_update_payload() {
   UPDATE_TEMPERATURE="${3:-}" \
   UPDATE_TOP_P="${4:-}" \
   UPDATE_MAX_TOKENS="${5:-}" \
-  python3 - <<'PY'
+  "${PYTHON_BIN}" - <<'PY'
 import json
 import os
 
@@ -280,7 +282,7 @@ print_current_model() {
   local session_json
   session_json="$(fetch_current_session)" || return 1
 
-  SESSION_JSON="${session_json}" python3 - <<'PY'
+  SESSION_JSON="${session_json}" "${PYTHON_BIN}" - <<'PY'
 import json
 import os
 
@@ -293,7 +295,7 @@ print_current_prompt() {
   local session_json
   session_json="$(fetch_current_session)" || return 1
 
-  SESSION_JSON="${session_json}" python3 - <<'PY'
+  SESSION_JSON="${session_json}" "${PYTHON_BIN}" - <<'PY'
 import json
 import os
 
@@ -325,7 +327,7 @@ show_config() {
   local session_json
   session_json="$(fetch_current_session)" || return 1
 
-  SESSION_JSON="${session_json}" python3 - <<'PY'
+  SESSION_JSON="${session_json}" "${PYTHON_BIN}" - <<'PY'
 import json
 import os
 
@@ -351,7 +353,7 @@ print_history() {
   local session_json
   session_json="$(fetch_current_session)" || return 1
 
-  SESSION_JSON="${session_json}" python3 - <<'PY'
+  SESSION_JSON="${session_json}" "${PYTHON_BIN}" - <<'PY'
 import json
 import os
 
@@ -389,7 +391,7 @@ create_session_if_needed() {
   )" || exit 1
 
   SESSION_ID="$(
-    CREATE_RESPONSE="${create_response}" python3 - <<'PY'
+    CREATE_RESPONSE="${create_response}" "${PYTHON_BIN}" - <<'PY'
 import json
 import os
 import sys
@@ -412,7 +414,7 @@ PY
 }
 
 print_non_streaming_response() {
-  RESPONSE_JSON="${1}" SHOW_METADATA_MODE="${SHOW_METADATA_MODE}" python3 - <<'PY'
+  RESPONSE_JSON="${1}" SHOW_METADATA_MODE="${SHOW_METADATA_MODE}" "${PYTHON_BIN}" - <<'PY'
 import json
 import os
 
@@ -491,7 +493,7 @@ update_session_config() {
       "${BASE_URL}/api/sessions/${SESSION_ID}"
   )" || return 1
 
-  SESSION_JSON="${response}" python3 - <<'PY'
+  SESSION_JSON="${response}" "${PYTHON_BIN}" - <<'PY'
 import json
 import os
 

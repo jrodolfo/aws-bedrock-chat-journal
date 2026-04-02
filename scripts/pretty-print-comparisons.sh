@@ -4,6 +4,8 @@ set -euo pipefail
 
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 REPO_ROOT="$(cd "${SCRIPT_DIR}/.." && pwd)"
+source "${SCRIPT_DIR}/lib/common.sh"
+PYTHON_BIN="$(find_python_bin)"
 COMPARISONS_DIR="${COMPARISONS_DIR:-${REPO_ROOT}/data/comparisons}"
 OUTPUT_MODE="rendered"
 
@@ -64,12 +66,12 @@ for file in "${files[@]}"; do
   echo "== ${file} =="
 
   if [[ "${OUTPUT_MODE}" == "raw" ]]; then
-    python3 -m json.tool "${file}"
+    "${PYTHON_BIN}" -m json.tool "${file}"
     echo
     continue
   fi
 
-  python3 - "${file}" <<'PY'
+  "${PYTHON_BIN}" - "${file}" <<'PY'
 import json
 import re
 import sys

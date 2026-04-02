@@ -5,6 +5,7 @@ import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.LinkedHashMap;
 import java.util.Map;
+import org.junit.jupiter.api.Assumptions;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.io.TempDir;
 
@@ -651,6 +652,8 @@ class RequestScriptsSmokeTest {
     }
 
     private ProcessResult runScriptWithInput(Path scriptPath, Map<String, String> env, String stdin, String... args) throws Exception {
+        assumeBashAvailable();
+
         Path absoluteScript = REPO_ROOT.resolve(scriptPath);
         java.util.List<String> command = new java.util.ArrayList<>();
         command.add("bash");
@@ -673,6 +676,19 @@ class RequestScriptsSmokeTest {
         int exitCode = process.waitFor();
 
         return new ProcessResult(exitCode, stdout, stderr);
+    }
+
+    private void assumeBashAvailable() {
+        try {
+            Process process = new ProcessBuilder("bash", "--version").start();
+            int exitCode = process.waitFor();
+            Assumptions.assumeTrue(exitCode == 0, "bash is required for script smoke tests");
+        } catch (IOException | InterruptedException ex) {
+            if (ex instanceof InterruptedException) {
+                Thread.currentThread().interrupt();
+            }
+            Assumptions.assumeTrue(false, "bash is required for script smoke tests");
+        }
     }
 
     private String readStream(java.io.InputStream inputStream) throws IOException {

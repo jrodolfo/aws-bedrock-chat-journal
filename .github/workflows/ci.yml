@@ -1,0 +1,49 @@
+name: CI
+
+on:
+  push:
+    branches:
+      - main
+  pull_request:
+
+jobs:
+  test:
+    runs-on: ${{ matrix.os }}
+    strategy:
+      fail-fast: false
+      matrix:
+        os:
+          - ubuntu-latest
+          - macos-latest
+          - windows-latest
+
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v4
+
+      - name: Set up JDK 21
+        uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: "21"
+          cache: gradle
+
+      - name: Run Gradle tests on Unix
+        if: runner.os != 'Windows'
+        run: ./gradlew test
+        shell: bash
+
+      - name: Run Gradle tests on Windows
+        if: runner.os == 'Windows'
+        run: .\gradlew.bat test
+        shell: pwsh
+
+      - name: Verify Bash helper scripts on Unix
+        if: runner.os != 'Windows'
+        run: ./scripts/build-and-test.sh --help && ./scripts/run-local.sh --help
+        shell: bash
+
+      - name: Verify PowerShell helper scripts on Windows
+        if: runner.os == 'Windows'
+        run: .\scripts\build-and-test.ps1 --help; .\scripts\run-local.ps1 --help
+        shell: pwsh

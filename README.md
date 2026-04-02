@@ -1,4 +1,4 @@
-![java](https://img.shields.io/badge/java-25-orange)
+![java](https://img.shields.io/badge/java-21-orange)
 ![shell](https://img.shields.io/badge/shell-bash-89e051)
 ![spring boot](https://img.shields.io/badge/spring%20boot-3.5.13-6db33f)
 ![aws bedrock](https://img.shields.io/badge/aws-bedrock-ff9900)
@@ -10,7 +10,7 @@ Small Spring Boot REST API for learning the Amazon Bedrock Converse API with Jav
 
 ## Stack
 
-- Java 25
+- Java 21
 - Gradle (Groovy)
 - Spring Boot 3.5.13
 - AWS SDK for Java 2.x
@@ -95,10 +95,24 @@ There is also a streaming endpoint for assistant replies:
 ./gradlew test build
 ```
 
+On Windows PowerShell or Command Prompt, use:
+
+```powershell
+gradlew.bat test build
+```
+
 You can also use the helper script:
 
 ```bash
 ./scripts/build-and-test.sh
+```
+
+The helper scripts in `scripts/` are Bash scripts. They work on macOS and Linux, and on Windows when run from Git Bash.
+
+For a native PowerShell entrypoint on Windows, use:
+
+```powershell
+./scripts/build-and-test.ps1
 ```
 
 If you want a different Gradle task set for one run:
@@ -113,12 +127,24 @@ GRADLE_TASKS="clean test build" ./scripts/build-and-test.sh
 ./gradlew bootRun
 ```
 
+On Windows PowerShell or Command Prompt, use:
+
+```powershell
+gradlew.bat bootRun
+```
+
 The API starts on `http://localhost:8080`.
 
 You can also use the helper script:
 
 ```bash
 ./scripts/run-local.sh
+```
+
+For a native PowerShell entrypoint on Windows, use:
+
+```powershell
+./scripts/run-local.ps1
 ```
 
 If port `8080` is busy, override it for that run:
@@ -147,9 +173,16 @@ The Swagger UI includes the maintainer contact information from this project:
 
 ## Local requirements
 
-- Java 25
+- Java 21
 - AWS credentials available through the default AWS credential chain
 - Bedrock model access enabled for the configured model in the configured region
+
+If you want to use the helper scripts on Windows, install Git Bash and run them from a Git Bash session.
+
+The repository also includes native Windows PowerShell wrappers for the main local workflows:
+
+- `scripts/build-and-test.ps1`
+- `scripts/run-local.ps1`
 
 The default configuration uses:
 
