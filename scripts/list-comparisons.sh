@@ -47,8 +47,9 @@ run_python - "${files[@]}" <<'PY'
 import json
 import sys
 from pathlib import Path
+from typing import Optional
 
-def preview(text: str | None, max_len: int = 72) -> str:
+def preview(text: Optional[str], max_len: int = 72) -> str:
     if not text:
         return "-"
     compact = " ".join(text.split())

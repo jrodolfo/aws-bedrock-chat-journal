@@ -70,6 +70,8 @@ if [[ -z "${MESSAGE_TEXT}" ]]; then
   if [[ -t 0 ]]; then
     printf "message> "
     read -r MESSAGE_TEXT
+  elif IFS= read -r MESSAGE_TEXT; then
+    printf "message> "
   else
     echo "MESSAGE_TEXT is required when running non-interactively." >&2
     echo >&2

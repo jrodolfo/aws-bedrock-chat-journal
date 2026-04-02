@@ -122,6 +122,7 @@ import os
 import re
 import subprocess
 import sys
+from typing import List, Optional
 
 current_event = None
 data_lines = []
@@ -185,7 +186,7 @@ def print_metadata_summary(metadata: dict) -> None:
     if stop_reason:
         print(f"Stop reason: {stop_reason}", flush=True)
 
-def handle_event(event_name: str | None, payload_lines: list[str]) -> None:
+def handle_event(event_name: Optional[str], payload_lines: List[str]) -> None:
     global event_error
 
     if not event_name:

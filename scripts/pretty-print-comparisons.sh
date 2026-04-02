@@ -75,6 +75,7 @@ import json
 import re
 import sys
 from pathlib import Path
+from typing import Optional
 
 file_path = Path(sys.argv[1])
 
@@ -134,7 +135,7 @@ def print_metadata(metadata: dict) -> None:
     for line in lines:
         print(f"  {line}")
 
-def format_inference_config(inference_config: dict | None) -> str:
+def format_inference_config(inference_config: Optional[dict]) -> str:
     if not inference_config:
         return "app defaults"
 

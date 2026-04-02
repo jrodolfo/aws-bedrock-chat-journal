@@ -501,7 +501,7 @@ if inference_a:
 if inference_b:
     report["inferenceConfigB"] = inference_b
 
-def reply_length(reply: str | None) -> int:
+def reply_length(reply) -> int:
     return len((reply or "").strip())
 
 def summary_for_models(report: dict) -> dict:
