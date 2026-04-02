@@ -23,6 +23,7 @@ Small Spring Boot REST API for learning the Amazon Bedrock Converse API with Jav
 - Reloads prior conversation history from disk
 - Sends the full conversation to Amazon Bedrock using the Converse API
 - Saves the assistant reply back into the same session file
+- Runs side-by-side comparisons of different Bedrock models, including saved reports and semantic summaries
 
 Each session file stores:
 
