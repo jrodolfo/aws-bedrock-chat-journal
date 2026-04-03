@@ -64,15 +64,15 @@ lookup_local_listening_pid() {
 
   if command -v cmd.exe >/dev/null 2>&1; then
     pid="$(
-      NETSTAT_OUTPUT="$(cmd.exe /c netstat -ano -p tcp 2>NUL | tr -d '\r')" TARGET_PORT="${port}" run_python - <<'PY'
-import os
+      cmd.exe /c netstat -ano -p tcp 2>/dev/null | tr -d '\r' | run_python - "${port}" <<'PY'
 import re
+import sys
 
-target_port = os.environ["TARGET_PORT"]
-pattern = re.compile(rf'^\s*TCP\s+\S+:{re.escape(target_port)}\s+\S+\s+LISTENING\s+(\d+)\s*$')
+target_port = re.escape(sys.argv[1])
+pattern = re.compile(rf'^\s*TCP\s+\S+:{target_port}\s+\S+\s+LISTENING\s+(\d+)\s*$')
 
-for line in os.environ["NETSTAT_OUTPUT"].splitlines():
-    match = pattern.match(line)
+for line in sys.stdin:
+    match = pattern.match(line.rstrip("\n"))
     if match:
         print(match.group(1))
         break
