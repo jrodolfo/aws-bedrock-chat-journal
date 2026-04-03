@@ -72,8 +72,8 @@ lookup_local_listening_pid() {
 
   if command -v powershell.exe >/dev/null 2>&1; then
     pid="$(
-      powershell.exe -NoProfile -Command \
-      "\$lines = netstat -ano -p tcp; \$match = \$lines | Select-String -Pattern '(^|\\s)TCP\\s+\\S+:${port}\\s+\\S+\\s+LISTENING\\s+(\\d+)\\s*$' | Select-Object -First 1; if (\$match) { \$match.Matches[0].Groups[2].Value }" \
+      PID_LOOKUP_PORT="${port}" powershell.exe -NoProfile -Command \
+      '$port = [int]$env:PID_LOOKUP_PORT; $lines = netstat -ano -p tcp; $pattern = "(^|\s)TCP\s+\S+:" + $port + "\s+\S+\s+LISTENING\s+(\d+)\s*$"; $match = $lines | Select-String -Pattern $pattern | Select-Object -First 1; if ($match) { $match.Matches[0].Groups[2].Value }' \
       2>/dev/null | tr -d '\r' | head -n 1
     )"
     if [[ -n "${pid}" ]]; then
