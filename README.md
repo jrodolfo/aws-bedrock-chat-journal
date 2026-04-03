@@ -178,6 +178,24 @@ The Swagger UI includes the maintainer contact information from this project:
 - AWS credentials available through the default AWS credential chain
 - Bedrock model access enabled for the configured model in the configured region
 
+If a helper script fails because Java 25 is not the active version, set `JAVA_HOME` to a Java 25 installation and put it first on `PATH`.
+
+Common examples:
+
+- macOS
+  `export JAVA_HOME=$(/usr/libexec/java_home -v 25)`
+  `export PATH="$JAVA_HOME/bin:$PATH"`
+- Windows PowerShell
+  `$env:JAVA_HOME="C:\Program Files\Java\jdk-25"`
+  `$env:Path="$env:JAVA_HOME\bin;$env:Path"`
+- Windows Git Bash
+  `export JAVA_HOME="/c/Program Files/Java/jdk-25"`
+  `export PATH="$JAVA_HOME/bin:$PATH"`
+- Amazon Linux 2023
+  `sudo dnf install -y java-25-amazon-corretto-devel`
+  `export JAVA_HOME=/usr/lib/jvm/java-25-amazon-corretto.x86_64`
+  `export PATH="$JAVA_HOME/bin:$PATH"`
+
 ## Helper script requirements
 
 The helper scripts in `scripts/` do not all have the same local dependencies.

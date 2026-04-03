@@ -4,6 +4,29 @@ $repoRoot = Split-Path -Parent $PSScriptRoot
 $gradleTasks = if ($env:GRADLE_TASKS) { $env:GRADLE_TASKS } else { "test build" }
 $requiredJavaMajor = 25
 
+function Get-JavaInstallHints {
+    @"
+Set JAVA_HOME to a Java $requiredJavaMajor installation and put it first on PATH.
+
+On macOS:
+  export JAVA_HOME=`"$$(/usr/libexec/java_home -v $requiredJavaMajor)`"
+  export PATH=`"`$JAVA_HOME/bin:`$PATH`"
+
+On Windows PowerShell:
+  `$env:JAVA_HOME="C:\Program Files\Java\jdk-$requiredJavaMajor"
+  `$env:Path="`$env:JAVA_HOME\bin;`$env:Path"
+
+On Windows Git Bash:
+  export JAVA_HOME="/c/Program Files/Java/jdk-$requiredJavaMajor"
+  export PATH="`$JAVA_HOME/bin:`$PATH"
+
+On Amazon Linux 2023:
+  sudo dnf install -y java-$requiredJavaMajor-amazon-corretto-devel
+  export JAVA_HOME=/usr/lib/jvm/java-$requiredJavaMajor-amazon-corretto.x86_64
+  export PATH="`$JAVA_HOME/bin:`$PATH"
+"@
+}
+
 function Fail-Script {
     param(
         [Parameter(Mandatory = $true)]
@@ -56,6 +79,7 @@ if (-not (Get-Command java -ErrorAction SilentlyContinue)) {
 Java $requiredJavaMajor is required, but 'java' is not on PATH.
 
 Install Java $requiredJavaMajor and set JAVA_HOME accordingly.
+$(Get-JavaInstallHints)
 "@
 }
 
@@ -70,7 +94,7 @@ Detected:
 Path:
   $($javaCommand.Source)
 
-Set JAVA_HOME to a Java $requiredJavaMajor installation and put it first on PATH.
+$(Get-JavaInstallHints)
 "@
 }
 

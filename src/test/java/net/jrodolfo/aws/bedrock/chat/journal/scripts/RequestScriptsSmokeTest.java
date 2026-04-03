@@ -111,6 +111,42 @@ class RequestScriptsSmokeTest {
     }
 
     @Test
+    void runLocalShowsMacAndWindowsJavaHintsWhenJavaVersionIsTooOld() throws Exception {
+        Path fakeBinDir = tempDir.resolve("fake-bin");
+        Files.createDirectories(fakeBinDir);
+        Path fakeJava = fakeBinDir.resolve("java");
+        writeScript(fakeJava, """
+                #!/usr/bin/env bash
+                if [[ "${1:-}" == "-version" ]]; then
+                  cat <<'EOF' >&2
+                java version "21.0.6" 2025-01-21 LTS
+                Java(TM) SE Runtime Environment (build 21.0.6+8-LTS-188)
+                Java HotSpot(TM) 64-Bit Server VM (build 21.0.6+8-LTS-188, mixed mode, sharing)
+                EOF
+                  exit 0
+                fi
+
+                echo "unexpected args: $*" >&2
+                exit 1
+                """);
+
+        String pathValue = fakeBinDir + System.getProperty("path.separator") + System.getenv("PATH");
+
+        ProcessResult result = runScript(
+                Path.of("scripts/run-local.sh"),
+                Map.of("PATH", pathValue)
+        );
+
+        assertThat(result.exitCode()).isNotZero();
+        assertThat(result.stderr()).contains("Error: Java 25 is required, but found Java 21.");
+        assertThat(result.stderr()).contains("On macOS:");
+        assertThat(result.stderr()).contains("/usr/libexec/java_home -v 25");
+        assertThat(result.stderr()).contains("On Windows PowerShell:");
+        assertThat(result.stderr()).contains("On Windows Git Bash:");
+        assertThat(result.stderr()).contains("On Amazon Linux 2023:");
+    }
+
+    @Test
     void compareModelsHelpWorks() throws Exception {
         ProcessResult result = runScript(Path.of("scripts/compare-models.sh"), Map.of(), "--help");
 
