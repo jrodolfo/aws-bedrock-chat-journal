@@ -219,6 +219,7 @@ If you only need to inspect which process is listening on a local port, use the 
 
 - `./scripts/find-port-pid.sh` for macOS and Linux
 - `./scripts/find-port-pid.ps1` for Windows PowerShell
+- `./scripts/stop-port-process.ps1` for Windows PowerShell when you want to stop that listener
 
 These workflows do not require Python:
 
@@ -553,6 +554,7 @@ A small runnable curl collection is included here:
 [`scripts/check-backend.sh`](scripts/check-backend.sh)
 [`scripts/find-port-pid.sh`](scripts/find-port-pid.sh)
 [`scripts/find-port-pid.ps1`](scripts/find-port-pid.ps1)
+[`scripts/stop-port-process.ps1`](scripts/stop-port-process.ps1)
 [`scripts/list-sessions.sh`](scripts/list-sessions.sh)
 [`scripts/reset-session.sh`](scripts/reset-session.sh)
 [`scripts/run-local.sh`](scripts/run-local.sh)
@@ -610,6 +612,13 @@ Windows PowerShell:
 ```
 
 On Windows, prefer the PowerShell script. The Bash version is intended for macOS and Linux rather than Git Bash.
+
+If you want to stop the listener on a port from Windows PowerShell:
+
+```powershell
+./scripts/stop-port-process.ps1
+./scripts/stop-port-process.ps1 8081
+```
 
 Example:
 

@@ -44,6 +44,7 @@ Session inspection and maintenance
 - ./delete-all-sessions.sh
 - ./find-port-pid.sh        (macOS/Linux)
 - ./find-port-pid.ps1       (Windows PowerShell)
+- ./stop-port-process.ps1   (Windows PowerShell)
 
 Interactive workflow
 - ./chat.sh
