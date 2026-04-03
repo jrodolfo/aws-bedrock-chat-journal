@@ -62,6 +62,28 @@ lookup_local_listening_pid() {
   local port="$1"
   local pid=""
 
+  if command -v cmd.exe >/dev/null 2>&1; then
+    pid="$(
+      NETSTAT_OUTPUT="$(cmd.exe /c netstat -ano -p tcp 2>NUL | tr -d '\r')" TARGET_PORT="${port}" run_python - <<'PY'
+import os
+import re
+
+target_port = os.environ["TARGET_PORT"]
+pattern = re.compile(rf'^\s*TCP\s+\S+:{re.escape(target_port)}\s+\S+\s+LISTENING\s+(\d+)\s*$')
+
+for line in os.environ["NETSTAT_OUTPUT"].splitlines():
+    match = pattern.match(line)
+    if match:
+        print(match.group(1))
+        break
+PY
+    )"
+    if [[ -n "${pid}" ]]; then
+      printf '%s\n' "${pid}"
+      return 0
+    fi
+  fi
+
   if command -v lsof >/dev/null 2>&1; then
     pid="$(lsof -ti "tcp:${port}" -sTCP:LISTEN 2>/dev/null | head -n 1)"
     if [[ -n "${pid}" ]]; then
@@ -71,11 +93,9 @@ lookup_local_listening_pid() {
   fi
 
   if command -v powershell.exe >/dev/null 2>&1; then
-    pid="$(
-      PID_LOOKUP_PORT="${port}" powershell.exe -NoProfile -Command \
-      '$port = [int]$env:PID_LOOKUP_PORT; $lines = netstat -ano -p tcp; $pattern = "(^|\s)TCP\s+\S+:" + $port + "\s+\S+\s+LISTENING\s+(\d+)\s*$"; $match = $lines | Select-String -Pattern $pattern | Select-Object -First 1; if ($match) { $match.Matches[0].Groups[2].Value }' \
-      2>/dev/null | tr -d '\r' | head -n 1
-    )"
+    pid="$(powershell.exe -NoProfile -Command \
+      "$lines = netstat -ano -p tcp; $match = $lines | Select-String -Pattern '(^|\s)TCP\s+\S+:${port}\s+\S+\s+LISTENING\s+(\d+)\s*$' | Select-Object -First 1; if ($match) { $match.Matches[0].Groups[2].Value }" \
+      2>/dev/null | tr -d '\r' | head -n 1)"
     if [[ -n "${pid}" ]]; then
       printf '%s\n' "${pid}"
       return 0
