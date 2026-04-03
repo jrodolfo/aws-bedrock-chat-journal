@@ -577,7 +577,6 @@ What the script does:
 
 - Calls `GET /api/health`
 - Confirms that the response JSON contains `status=OK`
-- When the backend is local, may also print the listening PID on that port
 - Exits non-zero with a short hint when the backend is unavailable
 
 Optional environment variables:
