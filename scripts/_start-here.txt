@@ -42,6 +42,8 @@ Session inspection and maintenance
 - ./reset-session.sh <session-id>
 - ./reset-all-sessions.sh
 - ./delete-all-sessions.sh
+- ./find-port-pid.sh
+- ./find-port-pid.ps1
 
 Interactive workflow
 - ./chat.sh

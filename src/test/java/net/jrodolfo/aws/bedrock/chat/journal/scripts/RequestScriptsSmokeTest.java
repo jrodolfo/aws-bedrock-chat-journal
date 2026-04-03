@@ -93,6 +93,23 @@ class RequestScriptsSmokeTest {
     }
 
     @Test
+    void findPortPidHelpWorks() throws Exception {
+        ProcessResult result = runScript(Path.of("scripts/find-port-pid.sh"), Map.of(), "--help");
+
+        assertThat(result.exitCode()).isZero();
+        assertThat(result.stdout()).contains("Prints the PID of the process listening");
+        assertThat(result.stdout()).contains("Default: 8080");
+    }
+
+    @Test
+    void findPortPidFailsForInvalidPort() throws Exception {
+        ProcessResult result = runScript(Path.of("scripts/find-port-pid.sh"), Map.of(), "not-a-port");
+
+        assertThat(result.exitCode()).isNotZero();
+        assertThat(result.stderr()).contains("Port must be a number");
+    }
+
+    @Test
     void compareModelsHelpWorks() throws Exception {
         ProcessResult result = runScript(Path.of("scripts/compare-models.sh"), Map.of(), "--help");
 

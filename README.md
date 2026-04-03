@@ -215,6 +215,11 @@ On Windows, the support model is intentionally split:
 
 The project does not include a PowerShell version of every helper script. The richer helper workflows are documented and supported through Git Bash.
 
+If you only need to inspect which process is listening on a local port, use the dedicated helpers:
+
+- `./scripts/find-port-pid.sh` for macOS and Linux
+- `./scripts/find-port-pid.ps1` for Windows PowerShell
+
 These workflows do not require Python:
 
 - `./scripts/build-and-test.sh`
@@ -546,6 +551,8 @@ A small runnable curl collection is included here:
 
 [`scripts/curl-examples.sh`](scripts/curl-examples.sh)
 [`scripts/check-backend.sh`](scripts/check-backend.sh)
+[`scripts/find-port-pid.sh`](scripts/find-port-pid.sh)
+[`scripts/find-port-pid.ps1`](scripts/find-port-pid.ps1)
 [`scripts/list-sessions.sh`](scripts/list-sessions.sh)
 [`scripts/reset-session.sh`](scripts/reset-session.sh)
 [`scripts/run-local.sh`](scripts/run-local.sh)
@@ -583,6 +590,24 @@ Optional environment variables:
 
 - `BASE_URL`
   Default: `http://localhost:8080`
+
+### Find the PID listening on a port
+
+Use these scripts when you want to identify the process listening on a local TCP port.
+
+macOS and Linux:
+
+```bash
+./scripts/find-port-pid.sh
+./scripts/find-port-pid.sh 8081
+```
+
+Windows PowerShell:
+
+```powershell
+./scripts/find-port-pid.ps1
+./scripts/find-port-pid.ps1 8081
+```
 
 Example:
 
