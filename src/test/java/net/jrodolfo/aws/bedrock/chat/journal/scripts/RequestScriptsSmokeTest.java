@@ -48,8 +48,9 @@ class RequestScriptsSmokeTest {
         );
 
         assertThat(result.exitCode()).isNotZero();
-        assertThat(result.stderr()).contains("Request failed.");
-        assertThat(result.stderr()).contains("Try ./scripts/run-local.sh");
+        assertThat(result.stderr()).contains("Backend is not reachable.");
+        assertThat(result.stderr()).contains("Health check failed for http://localhost:1/api/health.");
+        assertThat(result.stderr()).contains("Start it with: ./scripts/run-local.sh");
     }
 
     @Test
