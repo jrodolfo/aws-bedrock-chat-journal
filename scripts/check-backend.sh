@@ -62,6 +62,16 @@ lookup_local_listening_pid() {
   local port="$1"
   local pid=""
 
+  if command -v cmd.exe >/dev/null 2>&1; then
+    pid="$(cmd.exe /c netstat -ano -p tcp 2>NUL | awk -v target=":${port}" '
+      $1 ~ /TCP/ && $2 ~ target "$" && $4 == "LISTENING" { print $5; exit }
+    ' | tr -d '\r' | head -n 1)"
+    if [[ -n "${pid}" ]]; then
+      printf '%s\n' "${pid}"
+      return 0
+    fi
+  fi
+
   if command -v lsof >/dev/null 2>&1; then
     pid="$(lsof -ti "tcp:${port}" -sTCP:LISTEN 2>/dev/null | head -n 1)"
     if [[ -n "${pid}" ]]; then
@@ -85,7 +95,7 @@ lookup_local_listening_pid() {
   if command -v netstat >/dev/null 2>&1; then
     pid="$(netstat -ano 2>/dev/null | awk -v target=":${port}" '
       $1 ~ /TCP/ && $2 ~ target "$" && $4 == "LISTENING" { print $5; exit }
-    ')"
+    ' | tr -d '\r' | head -n 1)"
     if [[ -n "${pid}" ]]; then
       printf '%s\n' "${pid}"
       return 0
