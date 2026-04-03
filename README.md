@@ -182,6 +182,10 @@ The Swagger UI includes the maintainer contact information from this project:
 
 The helper scripts in `scripts/` do not all have the same local dependencies.
 
+If you are browsing the `scripts/` folder directly and want the shortest possible guide, start with:
+
+- `scripts/_start-here.txt`
+
 ## Summary of scripts
 
 The project includes a collection of Bash and PowerShell scripts for:

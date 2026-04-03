@@ -1,0 +1,57 @@
+AWS BEDROCK CHAT JOURNAL - SCRIPTS QUICK GUIDE
+
+This file is the shortest path through the scripts folder.
+For full examples and detailed usage, read the repo-root README.md.
+
+MOST COMMON ORDER
+
+1. build and test
+   ./build-and-test.sh
+   Windows PowerShell option: ./build-and-test.ps1
+
+2. run the app locally
+   ./run-local.sh
+   Windows PowerShell option: ./run-local.ps1
+
+3. verify the backend is responding
+   ./check-backend.sh
+
+4. create a sample session and send a sample message
+   ./curl-examples.sh
+
+5. inspect saved sessions
+   ./list-sessions.sh
+
+6. continue an existing session
+   ./send-message.sh <session-id>
+
+7. stream a reply from an existing session
+   ./stream-message.sh <session-id>
+
+WINDOWS NOTE
+
+- Use Git Bash for the .sh scripts in this folder.
+- Native PowerShell wrappers exist only for:
+  - ./build-and-test.ps1
+  - ./run-local.ps1
+
+OTHER USEFUL SCRIPTS
+
+Session inspection and maintenance
+- ./pretty-print-sessions.sh
+- ./reset-session.sh <session-id>
+- ./reset-all-sessions.sh
+- ./delete-all-sessions.sh
+
+Interactive workflow
+- ./chat.sh
+
+Model comparison workflow
+- ./compare-models.sh
+- ./list-comparisons.sh
+- ./pretty-print-comparisons.sh
+- ./comparison-stats.sh
+
+READ MORE
+
+- Full documentation and examples: ../README.md
