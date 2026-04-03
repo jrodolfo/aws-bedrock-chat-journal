@@ -60,24 +60,36 @@ PY
 
 lookup_local_listening_pid() {
   local port="$1"
+  local pid=""
 
   if command -v lsof >/dev/null 2>&1; then
-    lsof -ti "tcp:${port}" -sTCP:LISTEN 2>/dev/null | head -n 1
-    return 0
+    pid="$(lsof -ti "tcp:${port}" -sTCP:LISTEN 2>/dev/null | head -n 1)"
+    if [[ -n "${pid}" ]]; then
+      printf '%s\n' "${pid}"
+      return 0
+    fi
   fi
 
   if command -v powershell.exe >/dev/null 2>&1; then
-    powershell.exe -NoProfile -Command \
+    pid="$(
+      powershell.exe -NoProfile -Command \
       "$connection = Get-NetTCPConnection -LocalPort ${port} -State Listen -ErrorAction SilentlyContinue | Select-Object -First 1 -ExpandProperty OwningProcess; if (\$connection) { Write-Output \$connection }" \
       2>/dev/null | tr -d '\r' | head -n 1
-    return 0
+    )"
+    if [[ -n "${pid}" ]]; then
+      printf '%s\n' "${pid}"
+      return 0
+    fi
   fi
 
   if command -v netstat >/dev/null 2>&1; then
-    netstat -ano 2>/dev/null | awk -v target=":${port}" '
+    pid="$(netstat -ano 2>/dev/null | awk -v target=":${port}" '
       $1 ~ /TCP/ && $2 ~ target "$" && $4 == "LISTENING" { print $5; exit }
-    '
-    return 0
+    ')"
+    if [[ -n "${pid}" ]]; then
+      printf '%s\n' "${pid}"
+      return 0
+    fi
   fi
 
   return 0
