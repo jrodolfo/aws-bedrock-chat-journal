@@ -30,13 +30,13 @@ if [[ "${1:-}" == "-h" || "${1:-}" == "--help" ]]; then
 fi
 
 print_request_failure_hint() {
-  echo >&2
-  echo "Request failed." >&2
-  echo "Is the app running at ${BASE_URL}?" >&2
-  echo "Try ./scripts/run-local.sh" >&2
+  echo "Backend is not reachable." >&2
+  echo "Health check failed for ${BASE_URL}/api/health." >&2
+  echo "The app does not appear to be running at ${BASE_URL}." >&2
+  echo "Start it with: ./scripts/run-local.sh" >&2
 }
 
-if ! response="$(curl --fail --silent --show-error "${BASE_URL}/api/health")"; then
+if ! response="$(curl --fail --silent "${BASE_URL}/api/health")"; then
   print_request_failure_hint
   exit 1
 fi
