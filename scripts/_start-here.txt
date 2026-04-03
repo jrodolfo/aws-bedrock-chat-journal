@@ -42,8 +42,8 @@ Session inspection and maintenance
 - ./reset-session.sh <session-id>
 - ./reset-all-sessions.sh
 - ./delete-all-sessions.sh
-- ./find-port-pid.sh
-- ./find-port-pid.ps1
+- ./find-port-pid.sh        (macOS/Linux)
+- ./find-port-pid.ps1       (Windows PowerShell)
 
 Interactive workflow
 - ./chat.sh

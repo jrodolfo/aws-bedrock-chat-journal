@@ -609,6 +609,8 @@ Windows PowerShell:
 ./scripts/find-port-pid.ps1 8081
 ```
 
+On Windows, prefer the PowerShell script. The Bash version is intended for macOS and Linux rather than Git Bash.
+
 Example:
 
 ```bash

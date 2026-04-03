@@ -33,4 +33,4 @@ if (-not $match) {
 }
 
 $pid = $match.Matches[0].Groups[2].Value
-Write-Output "Listening PID on port $port: $pid"
+Write-Output "Listening PID on port ${port}: $pid"

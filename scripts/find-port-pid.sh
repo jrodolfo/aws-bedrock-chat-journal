@@ -32,6 +32,13 @@ if [[ ! "${PORT}" =~ ^[0-9]+$ ]]; then
   exit 1
 fi
 
+case "$(uname -s)" in
+  MINGW*|MSYS*|CYGWIN*)
+    echo "On Windows, use ./scripts/find-port-pid.ps1 instead of ./scripts/find-port-pid.sh." >&2
+    exit 1
+    ;;
+esac
+
 find_pid_with_lsof() {
   lsof -ti "tcp:${PORT}" -sTCP:LISTEN 2>/dev/null | head -n 1
 }
