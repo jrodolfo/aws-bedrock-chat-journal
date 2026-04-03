@@ -37,6 +37,7 @@ class RequestScriptsSmokeTest {
 
         assertThat(result.exitCode()).isZero();
         assertThat(result.stdout()).contains("Calls GET /api/health");
+        assertThat(result.stdout()).contains("listening PID");
         assertThat(result.stdout()).contains("BASE_URL");
     }
 

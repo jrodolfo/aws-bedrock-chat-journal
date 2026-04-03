@@ -14,6 +14,7 @@ Usage:
 
 What it does:
   Calls GET /api/health and confirms that the backend responds with status OK.
+  When BASE_URL is local, it may also print the listening PID for that port.
 
 Optional environment variables:
   BASE_URL        API base URL
@@ -34,6 +35,52 @@ print_request_failure_hint() {
   echo "Request failed." >&2
   echo "Is the app running at ${BASE_URL}?" >&2
   echo "Try ./scripts/run-local.sh" >&2
+}
+
+extract_host_and_port() {
+  BASE_URL_VALUE="${BASE_URL}" run_python - <<'PY'
+import os
+from urllib.parse import urlparse
+
+parsed = urlparse(os.environ["BASE_URL_VALUE"])
+host = parsed.hostname or ""
+port = parsed.port
+if port is None:
+    if parsed.scheme == "https":
+        port = 443
+    elif parsed.scheme == "http":
+        port = 80
+    else:
+        port = ""
+
+print(host)
+print(port)
+PY
+}
+
+lookup_local_listening_pid() {
+  local port="$1"
+
+  if command -v lsof >/dev/null 2>&1; then
+    lsof -ti "tcp:${port}" -sTCP:LISTEN 2>/dev/null | head -n 1
+    return 0
+  fi
+
+  if command -v powershell.exe >/dev/null 2>&1; then
+    powershell.exe -NoProfile -Command \
+      "$connection = Get-NetTCPConnection -LocalPort ${port} -State Listen -ErrorAction SilentlyContinue | Select-Object -First 1 -ExpandProperty OwningProcess; if (\$connection) { Write-Output \$connection }" \
+      2>/dev/null | tr -d '\r' | head -n 1
+    return 0
+  fi
+
+  if command -v netstat >/dev/null 2>&1; then
+    netstat -ano 2>/dev/null | awk -v target=":${port}" '
+      $1 ~ /TCP/ && $2 ~ target "$" && $4 == "LISTENING" { print $5; exit }
+    '
+    return 0
+  fi
+
+  return 0
 }
 
 if ! response="$(curl --fail --silent --show-error "${BASE_URL}/api/health")"; then
@@ -68,3 +115,14 @@ fi
 echo "Backend is up."
 echo "Base URL: ${BASE_URL}"
 echo "Health status: ${health_status}"
+
+mapfile -t base_url_parts < <(extract_host_and_port)
+base_url_host="${base_url_parts[0]:-}"
+base_url_port="${base_url_parts[1]:-}"
+
+if [[ "${base_url_host}" == "localhost" || "${base_url_host}" == "127.0.0.1" ]]; then
+  listening_pid="$(lookup_local_listening_pid "${base_url_port}")"
+  if [[ -n "${listening_pid}" ]]; then
+    echo "Listening PID on port ${base_url_port}: ${listening_pid}"
+  fi
+fi
