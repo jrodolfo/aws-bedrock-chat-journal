@@ -76,10 +76,10 @@ public class AppProperties {
 
     public static class Aws {
 
-        @NotBlank
+        @NotBlank(message = "app.aws.region must not be blank")
         private String region;
 
-        @NotBlank
+        @NotBlank(message = "app.aws.default-model-id must not be blank")
         private String defaultModelId;
 
         public String getRegion() {
@@ -101,7 +101,7 @@ public class AppProperties {
 
     public static class Storage {
 
-        @NotBlank
+        @NotBlank(message = "app.storage.sessions-directory must not be blank")
         private String sessionsDirectory;
 
         public String getSessionsDirectory() {
@@ -115,7 +115,7 @@ public class AppProperties {
 
     public static class Limits {
 
-        @Positive
+        @Positive(message = "app.limits.max-messages-per-session must be greater than 0")
         private int maxMessagesPerSession = 100;
 
         public int getMaxMessagesPerSession() {
@@ -129,15 +129,15 @@ public class AppProperties {
 
     public static class Inference {
 
-        @DecimalMin(value = "0.0")
-        @DecimalMax(value = "1.0")
+        @DecimalMin(value = "0.0", message = "app.inference.temperature must be between 0.0 and 1.0")
+        @DecimalMax(value = "1.0", message = "app.inference.temperature must be between 0.0 and 1.0")
         private double temperature = 0.7;
 
-        @DecimalMin(value = "0.0")
-        @DecimalMax(value = "1.0")
+        @DecimalMin(value = "0.0", message = "app.inference.top-p must be between 0.0 and 1.0")
+        @DecimalMax(value = "1.0", message = "app.inference.top-p must be between 0.0 and 1.0")
         private double topP = 0.9;
 
-        @Min(1)
+        @Min(value = 1, message = "app.inference.max-tokens must be at least 1")
         private int maxTokens = 512;
 
         public double getTemperature() {

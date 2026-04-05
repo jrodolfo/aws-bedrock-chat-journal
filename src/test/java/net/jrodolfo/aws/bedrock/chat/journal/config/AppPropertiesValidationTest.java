@@ -34,8 +34,7 @@ class AppPropertiesValidationTest {
                 .run(context -> {
                     assertThat(context).hasFailed();
                     assertThat(rootCauseOf(context.getStartupFailure()).getMessage())
-                            .contains("aws.region")
-                            .contains("must not be blank");
+                            .contains("app.aws.region must not be blank");
                 });
     }
 
@@ -46,8 +45,7 @@ class AppPropertiesValidationTest {
                 .run(context -> {
                     assertThat(context).hasFailed();
                     assertThat(rootCauseOf(context.getStartupFailure()).getMessage())
-                            .contains("aws.defaultModelId")
-                            .contains("must not be blank");
+                            .contains("app.aws.default-model-id must not be blank");
                 });
     }
 
@@ -58,8 +56,7 @@ class AppPropertiesValidationTest {
                 .run(context -> {
                     assertThat(context).hasFailed();
                     assertThat(rootCauseOf(context.getStartupFailure()).getMessage())
-                            .contains("storage.sessionsDirectory")
-                            .contains("must not be blank");
+                            .contains("app.storage.sessions-directory must not be blank");
                 });
     }
 
@@ -70,8 +67,7 @@ class AppPropertiesValidationTest {
                 .run(context -> {
                     assertThat(context).hasFailed();
                     assertThat(rootCauseOf(context.getStartupFailure()).getMessage())
-                            .contains("limits.maxMessagesPerSession")
-                            .contains("must be greater than 0");
+                            .contains("app.limits.max-messages-per-session must be greater than 0");
                 });
     }
 
@@ -82,8 +78,7 @@ class AppPropertiesValidationTest {
                 .run(context -> {
                     assertThat(context).hasFailed();
                     assertThat(rootCauseOf(context.getStartupFailure()).getMessage())
-                            .contains("inference.temperature")
-                            .contains("must be less than or equal to 1.0");
+                            .contains("app.inference.temperature must be between 0.0 and 1.0");
                 });
     }
 
@@ -94,8 +89,7 @@ class AppPropertiesValidationTest {
                 .run(context -> {
                     assertThat(context).hasFailed();
                     assertThat(rootCauseOf(context.getStartupFailure()).getMessage())
-                            .contains("inference.topP")
-                            .contains("must be greater than or equal to 0.0");
+                            .contains("app.inference.top-p must be between 0.0 and 1.0");
                 });
     }
 
@@ -106,8 +100,7 @@ class AppPropertiesValidationTest {
                 .run(context -> {
                     assertThat(context).hasFailed();
                     assertThat(rootCauseOf(context.getStartupFailure()).getMessage())
-                            .contains("inference.maxTokens")
-                            .contains("must be greater than or equal to 1");
+                            .contains("app.inference.max-tokens must be at least 1");
                 });
     }
 
