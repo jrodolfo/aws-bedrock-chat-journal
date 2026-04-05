@@ -9,8 +9,6 @@ usage() {
   cat <<EOF
 Usage:
   ./scripts/reset-session.sh <session-id>
-  SESSION_ID=<session-id> ./scripts/reset-session.sh
-  BASE_URL=http://localhost:8080 SESSION_ID=<session-id> ./scripts/reset-session.sh
 
 What it does:
   1. Resets the message history for an existing session

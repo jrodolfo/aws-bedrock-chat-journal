@@ -16,10 +16,6 @@ Usage:
   ./scripts/stream-message.sh <session-id>
   ./scripts/stream-message.sh <session-id> --raw
   ./scripts/stream-message.sh <session-id> "Explain streaming."
-  SESSION_ID=<session-id> ./scripts/stream-message.sh
-  SESSION_ID=<session-id> ./scripts/stream-message.sh --raw
-  SESSION_ID=<session-id> MESSAGE_TEXT="Explain streaming." ./scripts/stream-message.sh
-  BASE_URL=http://localhost:8080 SESSION_ID=<session-id> ./scripts/stream-message.sh
 
 What it does:
   1. Sends one user message to the streaming endpoint

@@ -793,7 +793,7 @@ Preferred positional arguments:
 This script follows the current helper-script convention:
 
 - prefer positional arguments for simple session-oriented commands
-- keep environment variables as a backward-compatible scripting option
+- allow environment variables for scripting or ad hoc overrides
 - prompt interactively when required input is omitted in an interactive terminal
 
 Optional environment variables:
@@ -805,7 +805,7 @@ Optional environment variables:
 - `MESSAGE_TEXT`
   Used when no positional `message-text` is provided
 
-The older environment-variable form still works:
+Environment-variable example:
 
 ```bash
 SESSION_ID=your-session-id \
@@ -1050,9 +1050,9 @@ Example:
 ./scripts/reset-session.sh your-session-id
 ```
 
-This script also prefers a positional `session-id`, while still accepting `SESSION_ID=...` for backward compatibility.
+This script accepts a positional `session-id` and can also read `SESSION_ID` from the environment.
 
-The older environment-variable form still works:
+Environment-variable example:
 
 ```bash
 SESSION_ID=your-session-id ./scripts/reset-session.sh
@@ -1134,9 +1134,9 @@ If you want to inspect the raw SSE frames instead, use:
 ./scripts/stream-message.sh your-session-id --raw
 ```
 
-This script also prefers positional arguments, while still accepting `SESSION_ID=...` and `MESSAGE_TEXT=...` for backward compatibility.
+This script accepts positional arguments and can also read `SESSION_ID` and `MESSAGE_TEXT` from the environment.
 
-The older environment-variable form still works:
+Environment-variable example:
 
 ```bash
 SESSION_ID=your-session-id \
