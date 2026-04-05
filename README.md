@@ -300,7 +300,6 @@ The default configuration uses:
 If you want to troubleshoot locally, useful debug logging targets are:
 
 - `net.jrodolfo.aws.bedrock.chat.journal`
-- `net.jrodolfo.aws.bedrock.chat.journal.bedrock.payload`
 - `software.amazon.awssdk`
 
 Example logging configuration:
@@ -310,8 +309,7 @@ logging:
   pattern:
     console: "%d{yyyy-MM-dd HH:mm:ss} %-5level [%X{requestId}] %logger{36} - %msg%n"
   level:
-    net.jrodolfo.aws.bedrock.chat.journal: DEBUG
-    net.jrodolfo.aws.bedrock.chat.journal.bedrock.payload: DEBUG
+    net.jrodolfo.aws.bedrock.chat.journal: INFO
     software.amazon.awssdk: INFO
 ```
 
@@ -337,7 +335,7 @@ Available payload modes:
 - `summary`: logs compact, study-friendly request/response summaries
 - `raw`: logs the full serialized Bedrock request/response payloads
 
-With payload logging enabled and the `net.jrodolfo.aws.bedrock.chat.journal.bedrock.payload` logger at `DEBUG`, the application logs:
+With payload logging enabled, the application logs:
 
 - the `ConverseRequest` payload sent to Bedrock
 - the `ConverseResponse` payload returned by Bedrock

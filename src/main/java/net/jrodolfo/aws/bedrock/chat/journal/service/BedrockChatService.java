@@ -88,10 +88,10 @@ public class BedrockChatService {
 
     @PostConstruct
     void logPayloadLoggingConfiguration() {
-        log.info("Bedrock payload logging mode: {}, redact content: {}, payload logger debug enabled: {}",
+        log.info("Bedrock payload logging mode: {}, redact content: {}, payload logger info enabled: {}",
                 bedrockPayloadMode,
                 redactBedrockContent,
-                payloadLog.isDebugEnabled());
+                payloadLog.isInfoEnabled());
     }
 
     public BedrockReply sendConversation(ChatSession session) {
@@ -377,13 +377,13 @@ public class BedrockChatService {
     }
 
     private void logPayload(String label, Object payload) {
-        if (bedrockPayloadMode == AppProperties.BedrockPayloadMode.OFF || !payloadLog.isDebugEnabled()) {
+        if (bedrockPayloadMode == AppProperties.BedrockPayloadMode.OFF || !payloadLog.isInfoEnabled()) {
             return;
         }
 
         try {
             Object payloadToLog = toLogPayload(payload);
-            payloadLog.debug("{}:{}{}", label, System.lineSeparator(),
+            payloadLog.info("{}:{}{}", label, System.lineSeparator(),
                     objectMapper.writerWithDefaultPrettyPrinter().writeValueAsString(payloadToLog));
         } catch (Exception ex) {
             payloadLog.warn("Failed to serialize {} for payload logging: {}", label, ex.getMessage());
