@@ -20,6 +20,8 @@ app:
     temperature: 0.7
     top-p: 0.9
     max-tokens: 512
+  logging:
+    log-bedrock-payloads: false
 
 # Example local debugging settings:
 # logging:
@@ -27,4 +29,8 @@ app:
 #     console: "%d{yyyy-MM-dd HH:mm:ss} %-5level [%X{requestId}] %logger{36} - %msg%n"
 #   level:
 #     net.jrodolfo.aws.bedrock.chat.journal: DEBUG
+#     net.jrodolfo.aws.bedrock.chat.journal.bedrock.payload: DEBUG
 #     software.amazon.awssdk: INFO
+# app:
+#   logging:
+#     log-bedrock-payloads: true

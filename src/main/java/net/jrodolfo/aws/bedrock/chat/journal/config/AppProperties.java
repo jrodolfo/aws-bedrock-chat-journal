@@ -22,6 +22,9 @@ public class AppProperties {
     @Valid
     private Inference inference = new Inference();
 
+    @Valid
+    private Logging logging = new Logging();
+
     public Aws getAws() {
         return aws;
     }
@@ -52,6 +55,14 @@ public class AppProperties {
 
     public void setInference(Inference inference) {
         this.inference = inference;
+    }
+
+    public Logging getLogging() {
+        return logging;
+    }
+
+    public void setLogging(Logging logging) {
+        this.logging = logging;
     }
 
     public static class Aws {
@@ -135,6 +146,19 @@ public class AppProperties {
 
         public void setMaxTokens(int maxTokens) {
             this.maxTokens = maxTokens;
+        }
+    }
+
+    public static class Logging {
+
+        private boolean logBedrockPayloads = false;
+
+        public boolean isLogBedrockPayloads() {
+            return logBedrockPayloads;
+        }
+
+        public void setLogBedrockPayloads(boolean logBedrockPayloads) {
+            this.logBedrockPayloads = logBedrockPayloads;
         }
     }
 }

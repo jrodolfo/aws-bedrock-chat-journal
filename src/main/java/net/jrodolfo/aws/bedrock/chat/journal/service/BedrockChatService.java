@@ -1,11 +1,15 @@
 package net.jrodolfo.aws.bedrock.chat.journal.service;
 
+import com.fasterxml.jackson.core.JsonProcessingException;
+import com.fasterxml.jackson.databind.ObjectMapper;
 import java.time.Instant;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Map;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.atomic.AtomicReference;
 import java.util.function.Consumer;
+import net.jrodolfo.aws.bedrock.chat.journal.config.AppProperties;
 import net.jrodolfo.aws.bedrock.chat.journal.exception.BadRequestException;
 import net.jrodolfo.aws.bedrock.chat.journal.model.BedrockReply;
 import net.jrodolfo.aws.bedrock.chat.journal.exception.BedrockInvocationException;
@@ -16,6 +20,7 @@ import net.jrodolfo.aws.bedrock.chat.journal.model.InferenceConfig;
 import net.jrodolfo.aws.bedrock.chat.journal.model.ResponseMetadata;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 import org.springframework.util.StringUtils;
 import software.amazon.awssdk.core.exception.SdkException;
@@ -39,14 +44,37 @@ import software.amazon.awssdk.services.bedrockruntime.model.TokenUsage;
 public class BedrockChatService {
 
     private static final Logger log = LoggerFactory.getLogger(BedrockChatService.class);
+    private static final Logger payloadLog = LoggerFactory.getLogger("net.jrodolfo.aws.bedrock.chat.journal.bedrock.payload");
 
     private final BedrockRuntimeClient bedrockRuntimeClient;
     private final BedrockRuntimeAsyncClient bedrockRuntimeAsyncClient;
+    private final ObjectMapper objectMapper;
+    private final boolean logBedrockPayloads;
 
+    @Autowired
     public BedrockChatService(BedrockRuntimeClient bedrockRuntimeClient,
-                              BedrockRuntimeAsyncClient bedrockRuntimeAsyncClient) {
+                              BedrockRuntimeAsyncClient bedrockRuntimeAsyncClient,
+                              ObjectMapper objectMapper,
+                              AppProperties appProperties) {
+        this(bedrockRuntimeClient,
+                bedrockRuntimeAsyncClient,
+                objectMapper,
+                appProperties.getLogging().isLogBedrockPayloads());
+    }
+
+    BedrockChatService(BedrockRuntimeClient bedrockRuntimeClient,
+                       BedrockRuntimeAsyncClient bedrockRuntimeAsyncClient,
+                       ObjectMapper objectMapper,
+                       boolean logBedrockPayloads) {
         this.bedrockRuntimeClient = bedrockRuntimeClient;
         this.bedrockRuntimeAsyncClient = bedrockRuntimeAsyncClient;
+        this.objectMapper = objectMapper;
+        this.logBedrockPayloads = logBedrockPayloads;
+    }
+
+    BedrockChatService(BedrockRuntimeClient bedrockRuntimeClient,
+                       BedrockRuntimeAsyncClient bedrockRuntimeAsyncClient) {
+        this(bedrockRuntimeClient, bedrockRuntimeAsyncClient, new ObjectMapper(), false);
     }
 
     public BedrockReply sendConversation(ChatSession session) {
@@ -73,7 +101,11 @@ public class BedrockChatService {
                         .build());
             }
 
-            ConverseResponse response = bedrockRuntimeClient.converse(requestBuilder.build());
+            ConverseRequest request = requestBuilder.build();
+            logPayload("converse request", request);
+
+            ConverseResponse response = bedrockRuntimeClient.converse(request);
+            logPayload("converse response", response);
             Instant respondedAt = Instant.now();
             long durationMs = System.currentTimeMillis() - startedAt;
             String assistantReply = extractAssistantText(response);
@@ -121,6 +153,9 @@ public class BedrockChatService {
                     .build());
         }
 
+        ConverseStreamRequest request = requestBuilder.build();
+        logPayload("converse stream request", request);
+
         ConverseStreamResponseHandler handler = ConverseStreamResponseHandler.builder()
                 .subscriber(ConverseStreamResponseHandler.Visitor.builder()
                         .onContentBlockDelta(event -> handleContentBlockDelta(event, reply, chunkConsumer))
@@ -143,12 +178,18 @@ public class BedrockChatService {
                     Instant respondedAt = Instant.now();
                     long durationMs = System.currentTimeMillis() - startedAt;
                     ResponseMetadata metadata = toStreamResponseMetadata(session, requestedAt, respondedAt, durationMs, stopReason.get(), usage.get(), metrics.get());
+                    logPayload("converse stream completion", Map.of(
+                            "sessionId", session.getSessionId(),
+                            "modelId", session.getModelId(),
+                            "replyText", reply.toString(),
+                            "metadata", metadata
+                    ));
                     result.complete(new BedrockReply(reply.toString(), metadata));
                 })
                 .build();
 
         try {
-            bedrockRuntimeAsyncClient.converseStream(requestBuilder.build(), handler);
+            bedrockRuntimeAsyncClient.converseStream(request, handler);
         } catch (SdkException ex) {
             return CompletableFuture.failedFuture(new BedrockInvocationException("Failed to stream from Amazon Bedrock: " + ex.getMessage(), ex));
         }
@@ -316,5 +357,18 @@ public class BedrockChatService {
         }
 
         return reply.toString();
+    }
+
+    private void logPayload(String label, Object payload) {
+        if (!logBedrockPayloads || !payloadLog.isDebugEnabled()) {
+            return;
+        }
+
+        try {
+            payloadLog.debug("{}:{}{}", label, System.lineSeparator(),
+                    objectMapper.writerWithDefaultPrettyPrinter().writeValueAsString(payload));
+        } catch (JsonProcessingException ex) {
+            payloadLog.warn("Failed to serialize {} for payload logging: {}", label, ex.getMessage());
+        }
     }
 }

@@ -287,6 +287,7 @@ The default configuration uses:
 If you want to troubleshoot locally, useful debug logging targets are:
 
 - `net.jrodolfo.aws.bedrock.chat.journal`
+- `net.jrodolfo.aws.bedrock.chat.journal.bedrock.payload`
 - `software.amazon.awssdk`
 
 Example logging configuration:
@@ -297,8 +298,26 @@ logging:
     console: "%d{yyyy-MM-dd HH:mm:ss} %-5level [%X{requestId}] %logger{36} - %msg%n"
   level:
     net.jrodolfo.aws.bedrock.chat.journal: DEBUG
+    net.jrodolfo.aws.bedrock.chat.journal.bedrock.payload: DEBUG
     software.amazon.awssdk: INFO
 ```
+
+If you want to log the Bedrock request and response payloads for study/debugging, also enable:
+
+```yaml
+app:
+  logging:
+    log-bedrock-payloads: true
+```
+
+With that flag enabled and the `net.jrodolfo.aws.bedrock.chat.journal.bedrock.payload` logger at `DEBUG`, the application logs:
+
+- the `ConverseRequest` JSON sent to Bedrock
+- the `ConverseResponse` JSON returned by Bedrock
+- the `ConverseStreamRequest` JSON for streaming calls
+- a final JSON summary for completed streaming responses
+
+These payload logs may include your prompts, prior conversation history, and model replies, so only enable them in local study/debug environments.
 
 Each HTTP response includes an `X-Request-Id` header. If the client sends one, the application reuses it. Otherwise it generates one. The same ID is available to application logs through MDC as `requestId`.
 
