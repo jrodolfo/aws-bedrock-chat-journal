@@ -324,6 +324,13 @@ app:
     redact-bedrock-content: true
 ```
 
+`redact-bedrock-content` controls whether the actual prompt and reply text is shown in the payload logs.
+
+- `true`: hide the real text and show only structure, preview placeholders such as `[redacted]`, and text length
+- `false`: show the real prompt and reply text in the logged payload
+
+Use `true` when you want to study the request/response shape without dumping full conversation content into logs. Use `false` when you want to inspect the exact text being sent to and returned from Bedrock.
+
 Available payload modes:
 
 - `off`: disables Bedrock payload logging
