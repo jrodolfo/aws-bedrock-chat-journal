@@ -64,6 +64,54 @@ class AppPropertiesValidationTest {
     }
 
     @Test
+    void failsWhenMaxMessagesPerSessionIsZero() {
+        contextRunner
+                .withPropertyValues("app.limits.max-messages-per-session=0")
+                .run(context -> {
+                    assertThat(context).hasFailed();
+                    assertThat(rootCauseOf(context.getStartupFailure()).getMessage())
+                            .contains("limits.maxMessagesPerSession")
+                            .contains("must be greater than 0");
+                });
+    }
+
+    @Test
+    void failsWhenInferenceTemperatureIsAboveOne() {
+        contextRunner
+                .withPropertyValues("app.inference.temperature=1.1")
+                .run(context -> {
+                    assertThat(context).hasFailed();
+                    assertThat(rootCauseOf(context.getStartupFailure()).getMessage())
+                            .contains("inference.temperature")
+                            .contains("must be less than or equal to 1.0");
+                });
+    }
+
+    @Test
+    void failsWhenInferenceTopPIsNegative() {
+        contextRunner
+                .withPropertyValues("app.inference.top-p=-0.1")
+                .run(context -> {
+                    assertThat(context).hasFailed();
+                    assertThat(rootCauseOf(context.getStartupFailure()).getMessage())
+                            .contains("inference.topP")
+                            .contains("must be greater than or equal to 0.0");
+                });
+    }
+
+    @Test
+    void failsWhenInferenceMaxTokensIsZero() {
+        contextRunner
+                .withPropertyValues("app.inference.max-tokens=0")
+                .run(context -> {
+                    assertThat(context).hasFailed();
+                    assertThat(rootCauseOf(context.getStartupFailure()).getMessage())
+                            .contains("inference.maxTokens")
+                            .contains("must be greater than or equal to 1");
+                });
+    }
+
+    @Test
     void bindsSuccessfullyWithRequiredPropertiesPresent() {
         contextRunner.run(context -> {
             assertThat(context).hasNotFailed();

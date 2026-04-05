@@ -1,6 +1,9 @@
 package net.jrodolfo.aws.bedrock.chat.journal.config;
 
 import jakarta.validation.Valid;
+import jakarta.validation.constraints.DecimalMax;
+import jakarta.validation.constraints.DecimalMin;
+import jakarta.validation.constraints.Min;
 import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.NotNull;
 import jakarta.validation.constraints.Positive;
@@ -126,8 +129,15 @@ public class AppProperties {
 
     public static class Inference {
 
+        @DecimalMin(value = "0.0")
+        @DecimalMax(value = "1.0")
         private double temperature = 0.7;
+
+        @DecimalMin(value = "0.0")
+        @DecimalMax(value = "1.0")
         private double topP = 0.9;
+
+        @Min(1)
         private int maxTokens = 512;
 
         public double getTemperature() {

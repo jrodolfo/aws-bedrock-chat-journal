@@ -59,7 +59,7 @@ app:
 ```
 
 The application uses the normal AWS default credential chain. Before calling Bedrock, make sure your local environment already has credentials and Bedrock model access configured.
-Required `app.*` properties are validated at startup, so blank values such as the AWS region, default model ID, or sessions directory will fail fast with a configuration error.
+Required `app.*` properties are validated at startup, so blank values such as the AWS region, default model ID, or sessions directory will fail fast with a configuration error. Numeric settings are also validated, for example `max-messages-per-session` must be positive, `temperature` and `top-p` must stay between `0.0` and `1.0`, and `max-tokens` must be at least `1`.
 
 ## Architecture
 
