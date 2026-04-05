@@ -21,7 +21,8 @@ app:
     top-p: 0.9
     max-tokens: 512
   logging:
-    bedrock-payload-mode: off
+#    bedrock-payload-mode: off
+    bedrock-payload-mode: summary
     redact-bedrock-content: true
 
 # Example local debugging settings:
