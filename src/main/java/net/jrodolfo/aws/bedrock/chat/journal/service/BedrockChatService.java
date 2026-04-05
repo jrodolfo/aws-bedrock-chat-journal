@@ -5,6 +5,7 @@ import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.node.ArrayNode;
 import com.fasterxml.jackson.databind.node.ObjectNode;
+import jakarta.annotation.PostConstruct;
 import java.time.Instant;
 import java.util.ArrayList;
 import java.util.LinkedHashMap;
@@ -83,6 +84,14 @@ public class BedrockChatService {
     BedrockChatService(BedrockRuntimeClient bedrockRuntimeClient,
                        BedrockRuntimeAsyncClient bedrockRuntimeAsyncClient) {
         this(bedrockRuntimeClient, bedrockRuntimeAsyncClient, new ObjectMapper(), AppProperties.BedrockPayloadMode.OFF, true);
+    }
+
+    @PostConstruct
+    void logPayloadLoggingConfiguration() {
+        log.info("Bedrock payload logging mode: {}, redact content: {}, payload logger debug enabled: {}",
+                bedrockPayloadMode,
+                redactBedrockContent,
+                payloadLog.isDebugEnabled());
     }
 
     public BedrockReply sendConversation(ChatSession session) {
