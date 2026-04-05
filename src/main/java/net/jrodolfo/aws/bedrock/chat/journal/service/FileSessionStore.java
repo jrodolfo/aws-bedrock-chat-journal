@@ -3,6 +3,8 @@ package net.jrodolfo.aws.bedrock.chat.journal.service;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import jakarta.annotation.PostConstruct;
 import java.io.IOException;
+import java.io.InputStream;
+import java.io.OutputStream;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.Optional;
@@ -42,7 +44,9 @@ public class FileSessionStore implements SessionStore {
 
         try {
             Files.createDirectories(sessionsDirectory);
-            objectMapper.writerWithDefaultPrettyPrinter().writeValue(sessionFile.toFile(), session);
+            try (OutputStream outputStream = Files.newOutputStream(sessionFile)) {
+                objectMapper.writerWithDefaultPrettyPrinter().writeValue(outputStream, session);
+            }
             log.debug("Saved session {} to {}", session.getSessionId(), sessionFile.toAbsolutePath());
             return session;
         } catch (IOException ex) {
@@ -59,7 +63,10 @@ public class FileSessionStore implements SessionStore {
         }
 
         try {
-            ChatSession session = objectMapper.readValue(sessionFile.toFile(), ChatSession.class);
+            ChatSession session;
+            try (InputStream inputStream = Files.newInputStream(sessionFile)) {
+                session = objectMapper.readValue(inputStream, ChatSession.class);
+            }
             log.debug("Loaded session {} with {} messages from {}",
                     sessionId,
                     session.getMessages() != null ? session.getMessages().size() : 0,

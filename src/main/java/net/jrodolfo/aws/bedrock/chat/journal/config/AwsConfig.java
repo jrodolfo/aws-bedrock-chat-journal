@@ -9,14 +9,14 @@ import software.amazon.awssdk.services.bedrockruntime.BedrockRuntimeClient;
 @Configuration
 public class AwsConfig {
 
-    @Bean
+    @Bean(destroyMethod = "close")
     public BedrockRuntimeClient bedrockRuntimeClient(AppProperties appProperties) {
         return BedrockRuntimeClient.builder()
                 .region(Region.of(appProperties.getAws().getRegion()))
                 .build();
     }
 
-    @Bean
+    @Bean(destroyMethod = "close")
     public BedrockRuntimeAsyncClient bedrockRuntimeAsyncClient(AppProperties appProperties) {
         return BedrockRuntimeAsyncClient.builder()
                 .region(Region.of(appProperties.getAws().getRegion()))
