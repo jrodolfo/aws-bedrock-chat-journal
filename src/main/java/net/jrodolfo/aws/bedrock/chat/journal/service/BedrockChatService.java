@@ -376,7 +376,7 @@ public class BedrockChatService {
             Object payloadToLog = toLogPayload(payload);
             payloadLog.debug("{}:{}{}", label, System.lineSeparator(),
                     objectMapper.writerWithDefaultPrettyPrinter().writeValueAsString(payloadToLog));
-        } catch (JsonProcessingException ex) {
+        } catch (Exception ex) {
             payloadLog.warn("Failed to serialize {} for payload logging: {}", label, ex.getMessage());
         }
     }
@@ -385,7 +385,7 @@ public class BedrockChatService {
         return switch (bedrockPayloadMode) {
             case OFF -> null;
             case SUMMARY -> summarizePayload(payload);
-            case RAW -> redactBedrockContent ? redactPayload(payload) : payload;
+            case RAW -> rawPayload(payload);
         };
     }
 
@@ -532,6 +532,11 @@ public class BedrockChatService {
     private Object redactPayload(Object payload) {
         JsonNode tree = objectMapper.valueToTree(payload);
         return redactJsonNode(tree);
+    }
+
+    private Object rawPayload(Object payload) {
+        JsonNode tree = objectMapper.valueToTree(payload);
+        return redactBedrockContent ? redactJsonNode(tree) : tree;
     }
 
     private JsonNode redactJsonNode(JsonNode node) {

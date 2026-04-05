@@ -222,7 +222,7 @@ class BedrockChatServiceTest {
     }
 
     @Test
-    void rawPayloadModeReturnsOriginalPayloadWhenRedactionIsDisabled() {
+    void rawPayloadModeKeepsTextVisibleWhenRedactionIsDisabled() {
         BedrockChatService service = new BedrockChatService(
                 Mockito.mock(BedrockRuntimeClient.class),
                 Mockito.mock(BedrockRuntimeAsyncClient.class),
@@ -234,7 +234,9 @@ class BedrockChatServiceTest {
 
         Object result = service.toLogPayload(payload);
 
-        assertThat(result).isSameAs(payload);
+        assertThat(result).isInstanceOf(com.fasterxml.jackson.databind.JsonNode.class);
+        com.fasterxml.jackson.databind.JsonNode node = (com.fasterxml.jackson.databind.JsonNode) result;
+        assertThat(node.get("replyText").asText()).isEqualTo("Visible reply");
     }
 
     private ConverseResponse converseResponse(String... parts) {
