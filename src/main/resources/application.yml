@@ -21,7 +21,6 @@ app:
     top-p: 0.9
     max-tokens: 512
   logging:
-#    bedrock-payload-mode: off
     bedrock-payload-mode: raw
     redact-bedrock-content: false
 

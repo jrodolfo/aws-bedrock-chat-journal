@@ -49,7 +49,6 @@ import software.amazon.awssdk.services.bedrockruntime.model.TokenUsage;
 public class BedrockChatService {
 
     private static final Logger log = LoggerFactory.getLogger(BedrockChatService.class);
-    private static final Logger payloadLog = LoggerFactory.getLogger("net.jrodolfo.aws.bedrock.chat.journal.bedrock.payload");
 
     private final BedrockRuntimeClient bedrockRuntimeClient;
     private final BedrockRuntimeAsyncClient bedrockRuntimeAsyncClient;
@@ -88,10 +87,9 @@ public class BedrockChatService {
 
     @PostConstruct
     void logPayloadLoggingConfiguration() {
-        log.info("Bedrock payload logging mode: {}, redact content: {}, payload logger info enabled: {}",
+        log.info("Bedrock payload logging mode: {}, redact content: {}",
                 bedrockPayloadMode,
-                redactBedrockContent,
-                payloadLog.isInfoEnabled());
+                redactBedrockContent);
     }
 
     public BedrockReply sendConversation(ChatSession session) {
@@ -377,16 +375,16 @@ public class BedrockChatService {
     }
 
     private void logPayload(String label, Object payload) {
-        if (bedrockPayloadMode == AppProperties.BedrockPayloadMode.OFF || !payloadLog.isInfoEnabled()) {
+        if (bedrockPayloadMode == AppProperties.BedrockPayloadMode.OFF) {
             return;
         }
 
         try {
             Object payloadToLog = toLogPayload(payload);
-            payloadLog.info("{}:{}{}", label, System.lineSeparator(),
+            log.info("{}:{}{}", label, System.lineSeparator(),
                     objectMapper.writerWithDefaultPrettyPrinter().writeValueAsString(payloadToLog));
         } catch (Exception ex) {
-            payloadLog.warn("Failed to serialize {} for payload logging: {}", label, ex.getMessage());
+            log.warn("Failed to serialize {} for payload logging: {}", label, ex.getMessage());
         }
     }
 
