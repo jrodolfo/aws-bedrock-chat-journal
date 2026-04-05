@@ -398,75 +398,75 @@ public class BedrockChatService {
 
     private Object summarizePayload(Object payload) {
         if (payload instanceof ConverseRequest request) {
-            return summarizeConverseRequest(request);
+            return buildConverseRequestPayload(request, false);
         }
         if (payload instanceof ConverseResponse response) {
-            return summarizeConverseResponse(response);
+            return buildConverseResponsePayload(response, false);
         }
         if (payload instanceof ConverseStreamRequest request) {
-            return summarizeConverseStreamRequest(request);
+            return buildConverseStreamRequestPayload(request, false);
         }
         if (payload instanceof Map<?, ?> map) {
-            return summarizeMapPayload(map);
+            return buildStreamCompletionPayload(map, false);
         }
         return payload;
     }
 
-    private Map<String, Object> summarizeConverseRequest(ConverseRequest request) {
+    private Map<String, Object> buildConverseRequestPayload(ConverseRequest request, boolean includeFullText) {
         Map<String, Object> summary = new LinkedHashMap<>();
         summary.put("type", "converseRequest");
         summary.put("modelId", request.modelId());
         summary.put("messageCount", request.messages() != null ? request.messages().size() : 0);
-        summary.put("messages", summarizeMessages(request.messages()));
+        summary.put("messages", buildMessagesPayload(request.messages(), includeFullText));
         if (request.system() != null && !request.system().isEmpty()) {
-            summary.put("system", summarizeSystemBlocks(request.system()));
+            summary.put("system", buildSystemBlocksPayload(request.system(), includeFullText));
         }
         if (request.inferenceConfig() != null) {
-            summary.put("inferenceConfig", summarizeInferenceConfiguration(request.inferenceConfig()));
+            summary.put("inferenceConfig", buildInferenceConfigurationPayload(request.inferenceConfig()));
         }
         return summary;
     }
 
-    private Map<String, Object> summarizeConverseResponse(ConverseResponse response) {
+    private Map<String, Object> buildConverseResponsePayload(ConverseResponse response, boolean includeFullText) {
         Map<String, Object> summary = new LinkedHashMap<>();
         summary.put("type", "converseResponse");
         if (response.stopReason() != null) {
             summary.put("stopReason", response.stopReasonAsString());
         }
         if (response.usage() != null) {
-            summary.put("usage", summarizeUsage(response.usage()));
+            summary.put("usage", buildUsagePayload(response.usage()));
         }
         if (response.metrics() != null) {
             summary.put("metrics", Map.of("latencyMs", response.metrics().latencyMs()));
         }
         if (response.output() != null && response.output().message() != null) {
-            summary.put("outputMessage", summarizeMessage(response.output().message()));
+            summary.put("outputMessage", buildMessagePayload(response.output().message(), includeFullText));
         }
         return summary;
     }
 
-    private Map<String, Object> summarizeConverseStreamRequest(ConverseStreamRequest request) {
+    private Map<String, Object> buildConverseStreamRequestPayload(ConverseStreamRequest request, boolean includeFullText) {
         Map<String, Object> summary = new LinkedHashMap<>();
         summary.put("type", "converseStreamRequest");
         summary.put("modelId", request.modelId());
         summary.put("messageCount", request.messages() != null ? request.messages().size() : 0);
-        summary.put("messages", summarizeMessages(request.messages()));
+        summary.put("messages", buildMessagesPayload(request.messages(), includeFullText));
         if (request.system() != null && !request.system().isEmpty()) {
-            summary.put("system", summarizeSystemBlocks(request.system()));
+            summary.put("system", buildSystemBlocksPayload(request.system(), includeFullText));
         }
         if (request.inferenceConfig() != null) {
-            summary.put("inferenceConfig", summarizeInferenceConfiguration(request.inferenceConfig()));
+            summary.put("inferenceConfig", buildInferenceConfigurationPayload(request.inferenceConfig()));
         }
         return summary;
     }
 
-    private Map<String, Object> summarizeMapPayload(Map<?, ?> map) {
+    private Map<String, Object> buildStreamCompletionPayload(Map<?, ?> map, boolean includeFullText) {
         Map<String, Object> summary = new LinkedHashMap<>();
         summary.put("type", "streamCompletion");
         summary.put("sessionId", map.get("sessionId"));
         summary.put("modelId", map.get("modelId"));
         if (map.containsKey("replyText")) {
-            summary.put("reply", summarizeTextValue((String) map.get("replyText")));
+            summary.put("reply", textPayload((String) map.get("replyText"), includeFullText));
         }
         if (map.containsKey("metadata")) {
             summary.put("metadata", map.get("metadata"));
@@ -474,25 +474,25 @@ public class BedrockChatService {
         return summary;
     }
 
-    private List<Map<String, Object>> summarizeMessages(List<Message> messages) {
+    private List<Map<String, Object>> buildMessagesPayload(List<Message> messages, boolean includeFullText) {
         List<Map<String, Object>> summaries = new ArrayList<>();
         if (messages == null) {
             return summaries;
         }
         for (Message message : messages) {
-            summaries.add(summarizeMessage(message));
+            summaries.add(buildMessagePayload(message, includeFullText));
         }
         return summaries;
     }
 
-    private Map<String, Object> summarizeMessage(Message message) {
+    private Map<String, Object> buildMessagePayload(Message message, boolean includeFullText) {
         Map<String, Object> summary = new LinkedHashMap<>();
         summary.put("role", message.role() != null ? message.role().toString() : null);
         List<Map<String, Object>> contents = new ArrayList<>();
         if (message.content() != null) {
             for (software.amazon.awssdk.services.bedrockruntime.model.ContentBlock block : message.content()) {
                 Map<String, Object> contentSummary = new LinkedHashMap<>();
-                contentSummary.put("text", summarizeTextValue(block.text()));
+                contentSummary.put("text", textPayload(block.text(), includeFullText));
                 contents.add(contentSummary);
             }
         }
@@ -500,17 +500,17 @@ public class BedrockChatService {
         return summary;
     }
 
-    private List<Map<String, Object>> summarizeSystemBlocks(List<SystemContentBlock> blocks) {
+    private List<Map<String, Object>> buildSystemBlocksPayload(List<SystemContentBlock> blocks, boolean includeFullText) {
         List<Map<String, Object>> summaries = new ArrayList<>();
         for (SystemContentBlock block : blocks) {
             Map<String, Object> summary = new LinkedHashMap<>();
-            summary.put("text", summarizeTextValue(block.text()));
+            summary.put("text", textPayload(block.text(), includeFullText));
             summaries.add(summary);
         }
         return summaries;
     }
 
-    private Map<String, Object> summarizeInferenceConfiguration(InferenceConfiguration inferenceConfig) {
+    private Map<String, Object> buildInferenceConfigurationPayload(InferenceConfiguration inferenceConfig) {
         Map<String, Object> summary = new LinkedHashMap<>();
         summary.put("temperature", inferenceConfig.temperature());
         summary.put("topP", inferenceConfig.topP());
@@ -518,7 +518,7 @@ public class BedrockChatService {
         return summary;
     }
 
-    private Map<String, Object> summarizeUsage(TokenUsage usage) {
+    private Map<String, Object> buildUsagePayload(TokenUsage usage) {
         Map<String, Object> summary = new LinkedHashMap<>();
         summary.put("inputTokens", usage.inputTokens());
         summary.put("outputTokens", usage.outputTokens());
@@ -526,9 +526,12 @@ public class BedrockChatService {
         return summary;
     }
 
-    private Object summarizeTextValue(String text) {
+    private Object textPayload(String text, boolean includeFullText) {
         if (!StringUtils.hasText(text)) {
-            return Map.of("length", text == null ? 0 : text.length(), "preview", "");
+            return includeFullText ? "" : Map.of("length", text == null ? 0 : text.length(), "preview", "");
+        }
+        if (includeFullText) {
+            return redactBedrockContent ? "[redacted]" : text;
         }
         if (redactBedrockContent) {
             return Map.of("length", text.length(), "preview", "[redacted]");
@@ -536,12 +539,20 @@ public class BedrockChatService {
         return Map.of("length", text.length(), "preview", preview(text));
     }
 
-    private Object redactPayload(Object payload) {
-        JsonNode tree = objectMapper.valueToTree(payload);
-        return redactJsonNode(tree);
-    }
-
     private Object rawPayload(Object payload) {
+        if (payload instanceof ConverseRequest request) {
+            return buildConverseRequestPayload(request, true);
+        }
+        if (payload instanceof ConverseResponse response) {
+            return buildConverseResponsePayload(response, true);
+        }
+        if (payload instanceof ConverseStreamRequest request) {
+            return buildConverseStreamRequestPayload(request, true);
+        }
+        if (payload instanceof Map<?, ?> map) {
+            return buildStreamCompletionPayload(map, true);
+        }
+
         JsonNode tree = objectMapper.valueToTree(payload);
         return redactBedrockContent ? redactJsonNode(tree) : tree;
     }

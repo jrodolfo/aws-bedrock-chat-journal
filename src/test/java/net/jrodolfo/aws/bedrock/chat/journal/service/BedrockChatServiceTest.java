@@ -209,20 +209,22 @@ class BedrockChatServiceTest {
                 true);
 
         Map<String, Object> payload = Map.of(
+                "sessionId", "session-1",
+                "modelId", "amazon.nova-lite-v1:0",
                 "replyText", "Secret assistant reply",
-                "nested", Map.of("text", "Sensitive prompt", "safe", 123));
+                "metadata", Map.of("durationMs", 123));
 
         Object result = service.toLogPayload(payload);
 
-        assertThat(result).isInstanceOf(com.fasterxml.jackson.databind.JsonNode.class);
-        com.fasterxml.jackson.databind.JsonNode node = (com.fasterxml.jackson.databind.JsonNode) result;
-        assertThat(node.get("replyText").asText()).isEqualTo("[redacted]");
-        assertThat(node.get("nested").get("text").asText()).isEqualTo("[redacted]");
-        assertThat(node.get("nested").get("safe").asInt()).isEqualTo(123);
+        assertThat(result).isInstanceOf(Map.class);
+        Map<?, ?> raw = (Map<?, ?>) result;
+        assertThat(raw.get("type")).isEqualTo("streamCompletion");
+        assertThat(raw.get("reply")).isEqualTo("[redacted]");
+        assertThat(raw.get("metadata")).isEqualTo(Map.of("durationMs", 123));
     }
 
     @Test
-    void rawPayloadModeKeepsTextVisibleWhenRedactionIsDisabled() {
+    void rawPayloadModeBuildsVisibleRequestPayloadWhenRedactionIsDisabled() {
         BedrockChatService service = new BedrockChatService(
                 Mockito.mock(BedrockRuntimeClient.class),
                 Mockito.mock(BedrockRuntimeAsyncClient.class),
@@ -230,13 +232,53 @@ class BedrockChatServiceTest {
                 AppProperties.BedrockPayloadMode.RAW,
                 false);
 
-        Map<String, Object> payload = Map.of("replyText", "Visible reply");
+        ConverseRequest request = ConverseRequest.builder()
+                .modelId("amazon.nova-lite-v1:0")
+                .messages(List.of(Message.builder()
+                        .role(ConversationRole.USER)
+                        .content(List.of(software.amazon.awssdk.services.bedrockruntime.model.ContentBlock.fromText("Visible prompt")))
+                        .build()))
+                .system(software.amazon.awssdk.services.bedrockruntime.model.SystemContentBlock.builder()
+                        .text("Visible system prompt")
+                        .build())
+                .build();
 
-        Object result = service.toLogPayload(payload);
+        Object result = service.toLogPayload(request);
 
-        assertThat(result).isInstanceOf(com.fasterxml.jackson.databind.JsonNode.class);
-        com.fasterxml.jackson.databind.JsonNode node = (com.fasterxml.jackson.databind.JsonNode) result;
-        assertThat(node.get("replyText").asText()).isEqualTo("Visible reply");
+        assertThat(result).isInstanceOf(Map.class);
+        Map<?, ?> raw = (Map<?, ?>) result;
+        assertThat(raw.get("modelId")).isEqualTo("amazon.nova-lite-v1:0");
+        Map<?, ?> firstMessage = ((List<Map<?, ?>>) raw.get("messages")).get(0);
+        Map<?, ?> firstContent = ((List<Map<?, ?>>) firstMessage.get("content")).get(0);
+        assertThat(firstContent.get("text")).isEqualTo("Visible prompt");
+        Map<?, ?> firstSystem = ((List<Map<?, ?>>) raw.get("system")).get(0);
+        assertThat(firstSystem.get("text")).isEqualTo("Visible system prompt");
+    }
+
+    @Test
+    void rawPayloadModeBuildsRedactedRequestPayloadWhenRedactionIsEnabled() {
+        BedrockChatService service = new BedrockChatService(
+                Mockito.mock(BedrockRuntimeClient.class),
+                Mockito.mock(BedrockRuntimeAsyncClient.class),
+                new ObjectMapper(),
+                AppProperties.BedrockPayloadMode.RAW,
+                true);
+
+        ConverseRequest request = ConverseRequest.builder()
+                .modelId("amazon.nova-lite-v1:0")
+                .messages(List.of(Message.builder()
+                        .role(ConversationRole.USER)
+                        .content(List.of(software.amazon.awssdk.services.bedrockruntime.model.ContentBlock.fromText("Secret prompt")))
+                        .build()))
+                .build();
+
+        Object result = service.toLogPayload(request);
+
+        assertThat(result).isInstanceOf(Map.class);
+        Map<?, ?> raw = (Map<?, ?>) result;
+        Map<?, ?> firstMessage = ((List<Map<?, ?>>) raw.get("messages")).get(0);
+        Map<?, ?> firstContent = ((List<Map<?, ?>>) firstMessage.get("content")).get(0);
+        assertThat(firstContent.get("text")).isEqualTo("[redacted]");
     }
 
     private ConverseResponse converseResponse(String... parts) {
