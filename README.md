@@ -315,20 +315,33 @@ logging:
     software.amazon.awssdk: INFO
 ```
 
-If you want to log the Bedrock request and response payloads for study/debugging, also enable:
+If you want to log Bedrock payloads for study/debugging, configure the payload mode under `app.logging`:
 
 ```yaml
 app:
   logging:
-    log-bedrock-payloads: true
+    bedrock-payload-mode: summary
+    redact-bedrock-content: true
 ```
 
-With that flag enabled and the `net.jrodolfo.aws.bedrock.chat.journal.bedrock.payload` logger at `DEBUG`, the application logs:
+Available payload modes:
 
-- the `ConverseRequest` JSON sent to Bedrock
-- the `ConverseResponse` JSON returned by Bedrock
-- the `ConverseStreamRequest` JSON for streaming calls
-- a final JSON summary for completed streaming responses
+- `off`: disables Bedrock payload logging
+- `summary`: logs compact, study-friendly request/response summaries
+- `raw`: logs the full serialized Bedrock request/response payloads
+
+With payload logging enabled and the `net.jrodolfo.aws.bedrock.chat.journal.bedrock.payload` logger at `DEBUG`, the application logs:
+
+- the `ConverseRequest` payload sent to Bedrock
+- the `ConverseResponse` payload returned by Bedrock
+- the `ConverseStreamRequest` payload for streaming calls
+- a final payload summary for completed streaming responses
+
+Recommended local study settings:
+
+- `summary` with `redact-bedrock-content: true` if you want structure, inference settings, token usage, and previews without dumping full prompt/reply text
+- `raw` with `redact-bedrock-content: false` if you want the closest view of the full payloads sent to and returned from Bedrock
+- `raw` with `redact-bedrock-content: true` if you want the full payload shape but with text content masked
 
 These payload logs may include your prompts, prior conversation history, and model replies, so only enable them in local study/debug environments.
 

@@ -25,7 +25,8 @@ class AppPropertiesValidationTest {
                     "app.inference.temperature=0.7",
                     "app.inference.top-p=0.9",
                     "app.inference.max-tokens=512",
-                    "app.logging.log-bedrock-payloads=false");
+                    "app.logging.bedrock-payload-mode=off",
+                    "app.logging.redact-bedrock-content=true");
 
     @Test
     void failsWhenAwsRegionIsBlank() {

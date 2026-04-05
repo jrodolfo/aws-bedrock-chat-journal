@@ -1,6 +1,9 @@
 package net.jrodolfo.aws.bedrock.chat.journal.service;
 
+import com.fasterxml.jackson.databind.ObjectMapper;
 import java.util.List;
+import java.util.Map;
+import net.jrodolfo.aws.bedrock.chat.journal.config.AppProperties;
 import net.jrodolfo.aws.bedrock.chat.journal.exception.BadRequestException;
 import net.jrodolfo.aws.bedrock.chat.journal.model.BedrockReply;
 import net.jrodolfo.aws.bedrock.chat.journal.exception.BedrockInvocationException;
@@ -156,6 +159,82 @@ class BedrockChatServiceTest {
         assertThatThrownBy(() -> service.sendConversation(session))
                 .isInstanceOf(BedrockInvocationException.class)
                 .hasMessageContaining("Failed to call Amazon Bedrock: Boom");
+    }
+
+    @Test
+    void summaryPayloadModeBuildsCompactRedactedRequestSummary() {
+        BedrockChatService service = new BedrockChatService(
+                Mockito.mock(BedrockRuntimeClient.class),
+                Mockito.mock(BedrockRuntimeAsyncClient.class),
+                new ObjectMapper(),
+                AppProperties.BedrockPayloadMode.SUMMARY,
+                true);
+
+        ConverseRequest request = ConverseRequest.builder()
+                .modelId("amazon.nova-lite-v1:0")
+                .messages(List.of(Message.builder()
+                        .role(ConversationRole.USER)
+                        .content(List.of(software.amazon.awssdk.services.bedrockruntime.model.ContentBlock.fromText("Explain Titan embeddings.")))
+                        .build()))
+                .system(software.amazon.awssdk.services.bedrockruntime.model.SystemContentBlock.builder()
+                        .text("You are a study assistant.")
+                        .build())
+                .inferenceConfig(software.amazon.awssdk.services.bedrockruntime.model.InferenceConfiguration.builder()
+                        .temperature(0.7f)
+                        .topP(0.9f)
+                        .maxTokens(512)
+                        .build())
+                .build();
+
+        Object payload = service.toLogPayload(request);
+
+        assertThat(payload).isInstanceOf(Map.class);
+        Map<?, ?> summary = (Map<?, ?>) payload;
+        assertThat(summary.get("type")).isEqualTo("converseRequest");
+        assertThat(summary.get("modelId")).isEqualTo("amazon.nova-lite-v1:0");
+        assertThat(summary.get("messageCount")).isEqualTo(1);
+        assertThat(summary.get("messages")).asList().hasSize(1);
+        Map<?, ?> firstMessage = ((List<Map<?, ?>>) summary.get("messages")).get(0);
+        Map<?, ?> firstContent = ((List<Map<?, ?>>) firstMessage.get("content")).get(0);
+        assertThat(firstContent.get("text")).isEqualTo(Map.of("length", 25, "preview", "[redacted]"));
+    }
+
+    @Test
+    void rawPayloadModeRedactsTextFieldsWhenEnabled() {
+        BedrockChatService service = new BedrockChatService(
+                Mockito.mock(BedrockRuntimeClient.class),
+                Mockito.mock(BedrockRuntimeAsyncClient.class),
+                new ObjectMapper(),
+                AppProperties.BedrockPayloadMode.RAW,
+                true);
+
+        Map<String, Object> payload = Map.of(
+                "replyText", "Secret assistant reply",
+                "nested", Map.of("text", "Sensitive prompt", "safe", 123));
+
+        Object result = service.toLogPayload(payload);
+
+        assertThat(result).isInstanceOf(com.fasterxml.jackson.databind.JsonNode.class);
+        com.fasterxml.jackson.databind.JsonNode node = (com.fasterxml.jackson.databind.JsonNode) result;
+        assertThat(node.get("replyText").asText()).isEqualTo("[redacted]");
+        assertThat(node.get("nested").get("text").asText()).isEqualTo("[redacted]");
+        assertThat(node.get("nested").get("safe").asInt()).isEqualTo(123);
+    }
+
+    @Test
+    void rawPayloadModeReturnsOriginalPayloadWhenRedactionIsDisabled() {
+        BedrockChatService service = new BedrockChatService(
+                Mockito.mock(BedrockRuntimeClient.class),
+                Mockito.mock(BedrockRuntimeAsyncClient.class),
+                new ObjectMapper(),
+                AppProperties.BedrockPayloadMode.RAW,
+                false);
+
+        Map<String, Object> payload = Map.of("replyText", "Visible reply");
+
+        Object result = service.toLogPayload(payload);
+
+        assertThat(result).isSameAs(payload);
     }
 
     private ConverseResponse converseResponse(String... parts) {

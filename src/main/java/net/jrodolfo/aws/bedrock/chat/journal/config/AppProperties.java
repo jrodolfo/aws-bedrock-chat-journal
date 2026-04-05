@@ -167,14 +167,31 @@ public class AppProperties {
 
     public static class Logging {
 
-        private boolean logBedrockPayloads = false;
+        @NotNull
+        private BedrockPayloadMode bedrockPayloadMode = BedrockPayloadMode.OFF;
 
-        public boolean isLogBedrockPayloads() {
-            return logBedrockPayloads;
+        private boolean redactBedrockContent = true;
+
+        public BedrockPayloadMode getBedrockPayloadMode() {
+            return bedrockPayloadMode;
         }
 
-        public void setLogBedrockPayloads(boolean logBedrockPayloads) {
-            this.logBedrockPayloads = logBedrockPayloads;
+        public void setBedrockPayloadMode(BedrockPayloadMode bedrockPayloadMode) {
+            this.bedrockPayloadMode = bedrockPayloadMode;
         }
+
+        public boolean isRedactBedrockContent() {
+            return redactBedrockContent;
+        }
+
+        public void setRedactBedrockContent(boolean redactBedrockContent) {
+            this.redactBedrockContent = redactBedrockContent;
+        }
+    }
+
+    public enum BedrockPayloadMode {
+        OFF,
+        SUMMARY,
+        RAW
     }
 }

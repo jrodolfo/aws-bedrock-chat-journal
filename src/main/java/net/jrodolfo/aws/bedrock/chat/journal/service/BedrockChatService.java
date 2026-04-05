@@ -1,9 +1,13 @@
 package net.jrodolfo.aws.bedrock.chat.journal.service;
 
+import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import com.fasterxml.jackson.databind.node.ArrayNode;
+import com.fasterxml.jackson.databind.node.ObjectNode;
 import java.time.Instant;
 import java.util.ArrayList;
+import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.concurrent.CompletableFuture;
@@ -49,7 +53,8 @@ public class BedrockChatService {
     private final BedrockRuntimeClient bedrockRuntimeClient;
     private final BedrockRuntimeAsyncClient bedrockRuntimeAsyncClient;
     private final ObjectMapper objectMapper;
-    private final boolean logBedrockPayloads;
+    private final AppProperties.BedrockPayloadMode bedrockPayloadMode;
+    private final boolean redactBedrockContent;
 
     @Autowired
     public BedrockChatService(BedrockRuntimeClient bedrockRuntimeClient,
@@ -59,22 +64,25 @@ public class BedrockChatService {
         this(bedrockRuntimeClient,
                 bedrockRuntimeAsyncClient,
                 objectMapper,
-                appProperties.getLogging().isLogBedrockPayloads());
+                appProperties.getLogging().getBedrockPayloadMode(),
+                appProperties.getLogging().isRedactBedrockContent());
     }
 
     BedrockChatService(BedrockRuntimeClient bedrockRuntimeClient,
                        BedrockRuntimeAsyncClient bedrockRuntimeAsyncClient,
                        ObjectMapper objectMapper,
-                       boolean logBedrockPayloads) {
+                       AppProperties.BedrockPayloadMode bedrockPayloadMode,
+                       boolean redactBedrockContent) {
         this.bedrockRuntimeClient = bedrockRuntimeClient;
         this.bedrockRuntimeAsyncClient = bedrockRuntimeAsyncClient;
         this.objectMapper = objectMapper;
-        this.logBedrockPayloads = logBedrockPayloads;
+        this.bedrockPayloadMode = bedrockPayloadMode;
+        this.redactBedrockContent = redactBedrockContent;
     }
 
     BedrockChatService(BedrockRuntimeClient bedrockRuntimeClient,
                        BedrockRuntimeAsyncClient bedrockRuntimeAsyncClient) {
-        this(bedrockRuntimeClient, bedrockRuntimeAsyncClient, new ObjectMapper(), false);
+        this(bedrockRuntimeClient, bedrockRuntimeAsyncClient, new ObjectMapper(), AppProperties.BedrockPayloadMode.OFF, true);
     }
 
     public BedrockReply sendConversation(ChatSession session) {
@@ -360,15 +368,205 @@ public class BedrockChatService {
     }
 
     private void logPayload(String label, Object payload) {
-        if (!logBedrockPayloads || !payloadLog.isDebugEnabled()) {
+        if (bedrockPayloadMode == AppProperties.BedrockPayloadMode.OFF || !payloadLog.isDebugEnabled()) {
             return;
         }
 
         try {
+            Object payloadToLog = toLogPayload(payload);
             payloadLog.debug("{}:{}{}", label, System.lineSeparator(),
-                    objectMapper.writerWithDefaultPrettyPrinter().writeValueAsString(payload));
+                    objectMapper.writerWithDefaultPrettyPrinter().writeValueAsString(payloadToLog));
         } catch (JsonProcessingException ex) {
             payloadLog.warn("Failed to serialize {} for payload logging: {}", label, ex.getMessage());
         }
+    }
+
+    Object toLogPayload(Object payload) {
+        return switch (bedrockPayloadMode) {
+            case OFF -> null;
+            case SUMMARY -> summarizePayload(payload);
+            case RAW -> redactBedrockContent ? redactPayload(payload) : payload;
+        };
+    }
+
+    private Object summarizePayload(Object payload) {
+        if (payload instanceof ConverseRequest request) {
+            return summarizeConverseRequest(request);
+        }
+        if (payload instanceof ConverseResponse response) {
+            return summarizeConverseResponse(response);
+        }
+        if (payload instanceof ConverseStreamRequest request) {
+            return summarizeConverseStreamRequest(request);
+        }
+        if (payload instanceof Map<?, ?> map) {
+            return summarizeMapPayload(map);
+        }
+        return payload;
+    }
+
+    private Map<String, Object> summarizeConverseRequest(ConverseRequest request) {
+        Map<String, Object> summary = new LinkedHashMap<>();
+        summary.put("type", "converseRequest");
+        summary.put("modelId", request.modelId());
+        summary.put("messageCount", request.messages() != null ? request.messages().size() : 0);
+        summary.put("messages", summarizeMessages(request.messages()));
+        if (request.system() != null && !request.system().isEmpty()) {
+            summary.put("system", summarizeSystemBlocks(request.system()));
+        }
+        if (request.inferenceConfig() != null) {
+            summary.put("inferenceConfig", summarizeInferenceConfiguration(request.inferenceConfig()));
+        }
+        return summary;
+    }
+
+    private Map<String, Object> summarizeConverseResponse(ConverseResponse response) {
+        Map<String, Object> summary = new LinkedHashMap<>();
+        summary.put("type", "converseResponse");
+        if (response.stopReason() != null) {
+            summary.put("stopReason", response.stopReasonAsString());
+        }
+        if (response.usage() != null) {
+            summary.put("usage", summarizeUsage(response.usage()));
+        }
+        if (response.metrics() != null) {
+            summary.put("metrics", Map.of("latencyMs", response.metrics().latencyMs()));
+        }
+        if (response.output() != null && response.output().message() != null) {
+            summary.put("outputMessage", summarizeMessage(response.output().message()));
+        }
+        return summary;
+    }
+
+    private Map<String, Object> summarizeConverseStreamRequest(ConverseStreamRequest request) {
+        Map<String, Object> summary = new LinkedHashMap<>();
+        summary.put("type", "converseStreamRequest");
+        summary.put("modelId", request.modelId());
+        summary.put("messageCount", request.messages() != null ? request.messages().size() : 0);
+        summary.put("messages", summarizeMessages(request.messages()));
+        if (request.system() != null && !request.system().isEmpty()) {
+            summary.put("system", summarizeSystemBlocks(request.system()));
+        }
+        if (request.inferenceConfig() != null) {
+            summary.put("inferenceConfig", summarizeInferenceConfiguration(request.inferenceConfig()));
+        }
+        return summary;
+    }
+
+    private Map<String, Object> summarizeMapPayload(Map<?, ?> map) {
+        Map<String, Object> summary = new LinkedHashMap<>();
+        summary.put("type", "streamCompletion");
+        summary.put("sessionId", map.get("sessionId"));
+        summary.put("modelId", map.get("modelId"));
+        if (map.containsKey("replyText")) {
+            summary.put("reply", summarizeTextValue((String) map.get("replyText")));
+        }
+        if (map.containsKey("metadata")) {
+            summary.put("metadata", map.get("metadata"));
+        }
+        return summary;
+    }
+
+    private List<Map<String, Object>> summarizeMessages(List<Message> messages) {
+        List<Map<String, Object>> summaries = new ArrayList<>();
+        if (messages == null) {
+            return summaries;
+        }
+        for (Message message : messages) {
+            summaries.add(summarizeMessage(message));
+        }
+        return summaries;
+    }
+
+    private Map<String, Object> summarizeMessage(Message message) {
+        Map<String, Object> summary = new LinkedHashMap<>();
+        summary.put("role", message.role() != null ? message.role().toString() : null);
+        List<Map<String, Object>> contents = new ArrayList<>();
+        if (message.content() != null) {
+            for (software.amazon.awssdk.services.bedrockruntime.model.ContentBlock block : message.content()) {
+                Map<String, Object> contentSummary = new LinkedHashMap<>();
+                contentSummary.put("text", summarizeTextValue(block.text()));
+                contents.add(contentSummary);
+            }
+        }
+        summary.put("content", contents);
+        return summary;
+    }
+
+    private List<Map<String, Object>> summarizeSystemBlocks(List<SystemContentBlock> blocks) {
+        List<Map<String, Object>> summaries = new ArrayList<>();
+        for (SystemContentBlock block : blocks) {
+            Map<String, Object> summary = new LinkedHashMap<>();
+            summary.put("text", summarizeTextValue(block.text()));
+            summaries.add(summary);
+        }
+        return summaries;
+    }
+
+    private Map<String, Object> summarizeInferenceConfiguration(InferenceConfiguration inferenceConfig) {
+        Map<String, Object> summary = new LinkedHashMap<>();
+        summary.put("temperature", inferenceConfig.temperature());
+        summary.put("topP", inferenceConfig.topP());
+        summary.put("maxTokens", inferenceConfig.maxTokens());
+        return summary;
+    }
+
+    private Map<String, Object> summarizeUsage(TokenUsage usage) {
+        Map<String, Object> summary = new LinkedHashMap<>();
+        summary.put("inputTokens", usage.inputTokens());
+        summary.put("outputTokens", usage.outputTokens());
+        summary.put("totalTokens", usage.totalTokens());
+        return summary;
+    }
+
+    private Object summarizeTextValue(String text) {
+        if (!StringUtils.hasText(text)) {
+            return Map.of("length", text == null ? 0 : text.length(), "preview", "");
+        }
+        if (redactBedrockContent) {
+            return Map.of("length", text.length(), "preview", "[redacted]");
+        }
+        return Map.of("length", text.length(), "preview", preview(text));
+    }
+
+    private Object redactPayload(Object payload) {
+        JsonNode tree = objectMapper.valueToTree(payload);
+        return redactJsonNode(tree);
+    }
+
+    private JsonNode redactJsonNode(JsonNode node) {
+        if (node == null) {
+            return null;
+        }
+        if (node.isObject()) {
+            ObjectNode redacted = ((ObjectNode) node).deepCopy();
+            redacted.fieldNames().forEachRemaining(fieldName -> {
+                JsonNode child = redacted.get(fieldName);
+                if (isSensitiveTextField(fieldName) && child != null && child.isTextual()) {
+                    redacted.put(fieldName, "[redacted]");
+                } else {
+                    redacted.set(fieldName, redactJsonNode(child));
+                }
+            });
+            return redacted;
+        }
+        if (node.isArray()) {
+            ArrayNode redacted = objectMapper.createArrayNode();
+            for (JsonNode child : node) {
+                redacted.add(redactJsonNode(child));
+            }
+            return redacted;
+        }
+        return node;
+    }
+
+    private boolean isSensitiveTextField(String fieldName) {
+        return "text".equals(fieldName) || "replyText".equals(fieldName);
+    }
+
+    private String preview(String text) {
+        String normalized = text.replaceAll("\\s+", " ").trim();
+        int maxLength = 120;
+        return normalized.length() <= maxLength ? normalized : normalized.substring(0, maxLength) + "...";
     }
 }
