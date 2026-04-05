@@ -31,9 +31,12 @@ MOST COMMON ORDER
 WINDOWS NOTE
 
 - Use Git Bash for the .sh scripts in this folder.
-- Native PowerShell wrappers exist only for:
+- PowerShell wrappers for the main local workflows:
   - ./build-and-test.ps1
   - ./run-local.ps1
+- Separate Windows PowerShell helpers also exist for:
+  - ./find-port-pid.ps1
+  - ./stop-port-process.ps1
 
 OTHER USEFUL SCRIPTS
 
@@ -58,4 +61,3 @@ Model comparison workflow
 READ MORE
 
 - Full documentation and examples: ../README.md
-

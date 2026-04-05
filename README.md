@@ -222,14 +222,15 @@ If you are running this project on Windows, the simplest setup is:
 3. Install Python 3
 4. Verify Python with `py -3 --version`
 5. Use Git Bash for the `.sh` helper scripts
-6. Optionally use PowerShell for `./scripts/build-and-test.ps1` and `./scripts/run-local.ps1`
+6. Optionally use PowerShell for the main workflow wrappers `./scripts/build-and-test.ps1` and `./scripts/run-local.ps1`
 
 ## Windows shell support
 
 On Windows, the support model is intentionally split:
 
 - Use Git Bash for the Bash helper scripts under `scripts/*.sh`
-- Use PowerShell only for the native wrappers `scripts/build-and-test.ps1` and `scripts/run-local.ps1`
+- Use PowerShell for the main workflow wrappers `scripts/build-and-test.ps1` and `scripts/run-local.ps1`
+- Use PowerShell for standalone Windows helpers such as `scripts/find-port-pid.ps1` and `scripts/stop-port-process.ps1`
 
 The project does not include a PowerShell version of every helper script. The richer helper workflows are documented and supported through Git Bash.
 
