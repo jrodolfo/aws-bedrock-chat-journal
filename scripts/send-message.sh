@@ -12,6 +12,9 @@ Usage:
   ./scripts/send-message.sh <session-id>
   ./scripts/send-message.sh <session-id> "Compare Converse and InvokeModel."
   ./scripts/send-message.sh <session-id>    # prompts for message text interactively
+  SESSION_ID=<session-id> ./scripts/send-message.sh
+  SESSION_ID=<session-id> MESSAGE_TEXT="Compare Converse and InvokeModel." ./scripts/send-message.sh
+  BASE_URL=http://localhost:8080 SESSION_ID=<session-id> ./scripts/send-message.sh
 
 What it does:
   1. Reads the existing session
