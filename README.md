@@ -250,6 +250,7 @@ The project does not include a PowerShell version of every helper script. The ri
 If you only need to inspect which process is listening on a local port, use the dedicated helpers:
 
 - `./scripts/find-port-pid.sh` for macOS and Linux
+- `./scripts/stop-port-process.sh` for macOS and Linux when you want to stop that listener
 - `./scripts/find-port-pid.ps1` for Windows PowerShell
 - `./scripts/stop-port-process.ps1` for Windows PowerShell when you want to stop that listener
 
@@ -622,6 +623,7 @@ A small runnable curl collection is included here:
 [`scripts/curl-examples.sh`](scripts/curl-examples.sh)
 [`scripts/check-backend.sh`](scripts/check-backend.sh)
 [`scripts/find-port-pid.sh`](scripts/find-port-pid.sh)
+[`scripts/stop-port-process.sh`](scripts/stop-port-process.sh)
 [`scripts/find-port-pid.ps1`](scripts/find-port-pid.ps1)
 [`scripts/stop-port-process.ps1`](scripts/stop-port-process.ps1)
 [`scripts/list-sessions.sh`](scripts/list-sessions.sh)
@@ -671,6 +673,13 @@ macOS and Linux:
 ```bash
 ./scripts/find-port-pid.sh
 ./scripts/find-port-pid.sh 8081
+```
+
+If you want to stop the listener on a port from macOS or Linux:
+
+```bash
+./scripts/stop-port-process.sh
+./scripts/stop-port-process.sh 8081
 ```
 
 Windows PowerShell:
@@ -1218,6 +1227,7 @@ scripts
 ├── reset-session.sh
 ├── run-local.sh
 ├── send-message.sh
+├── stop-port-process.sh
 └── stream-message.sh
 src/main/java/net/jrodolfo/aws/bedrock/chat/journal
 ├── Application.java
