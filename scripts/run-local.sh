@@ -94,4 +94,15 @@ EOF
 require_java_25
 
 cd "${REPO_ROOT}"
-exec "${REPO_ROOT}/gradlew" bootRun --args="--server.port=${PORT}"
+
+set +e
+"${REPO_ROOT}/gradlew" bootRun --args="--server.port=${PORT}"
+exit_code=$?
+set -e
+
+if [[ "${exit_code}" -eq 143 ]]; then
+  echo "Spring Boot stopped cleanly after receiving SIGTERM."
+  exit 0
+fi
+
+exit "${exit_code}"

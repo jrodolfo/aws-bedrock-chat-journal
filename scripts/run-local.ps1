@@ -101,6 +101,13 @@ $(Get-JavaInstallHints)
 Push-Location $repoRoot
 try {
     & "$repoRoot\gradlew.bat" "bootRun" "--args=--server.port=$port"
+    $exitCode = $LASTEXITCODE
+    if ($exitCode -eq 143) {
+        Write-Output "Spring Boot stopped cleanly after receiving SIGTERM."
+        exit 0
+    }
+
+    exit $exitCode
 } finally {
     Pop-Location
 }
