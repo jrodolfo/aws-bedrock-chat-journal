@@ -37,7 +37,7 @@ Usage:
   PORT=8081 ./scripts/run-local.sh
 
 What it does:
-  Starts the Spring Boot application with Gradle using the selected local port.
+  Builds the Spring Boot jar with Gradle and runs it with Java on the selected local port.
 
 Optional environment variables:
   PORT            Server port to use for this run
@@ -94,9 +94,20 @@ EOF
 require_java_25
 
 cd "${REPO_ROOT}"
+BOOT_JAR_TASK_ARGS=(bootJar)
+JAVA_RUN_ARGS=(-jar)
+
+"${REPO_ROOT}/gradlew" "${BOOT_JAR_TASK_ARGS[@]}"
+
+boot_jar_path="$(find "${REPO_ROOT}/build/libs" -maxdepth 1 -type f -name '*.jar' ! -name '*-plain.jar' | sort | head -n 1)"
+
+if [[ -z "${boot_jar_path}" ]]; then
+  echo "Unable to find the Spring Boot jar under build/libs after running bootJar." >&2
+  exit 1
+fi
 
 set +e
-"${REPO_ROOT}/gradlew" bootRun --args="--server.port=${PORT}"
+java "${JAVA_RUN_ARGS[@]}" "${boot_jar_path}" --server.port="${PORT}"
 exit_code=$?
 set -e
 

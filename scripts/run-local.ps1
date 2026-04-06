@@ -44,7 +44,7 @@ Usage:
   `$env:PORT=8081; ./scripts/run-local.ps1
 
 What it does:
-  Starts the Spring Boot application with Gradle using the selected local port.
+  Builds the Spring Boot jar with Gradle and runs it with Java on the selected local port.
 
 Optional environment variables:
   PORT            Server port to use for this run
@@ -100,7 +100,22 @@ $(Get-JavaInstallHints)
 
 Push-Location $repoRoot
 try {
-    & "$repoRoot\gradlew.bat" "bootRun" "--args=--server.port=$port"
+    & "$repoRoot\gradlew.bat" "bootJar"
+    $exitCode = $LASTEXITCODE
+    if ($exitCode -ne 0) {
+        exit $exitCode
+    }
+
+    $bootJar = Get-ChildItem -Path (Join-Path $repoRoot "build\libs") -Filter *.jar -File |
+        Where-Object { $_.Name -notlike "*-plain.jar" } |
+        Sort-Object Name |
+        Select-Object -First 1
+
+    if (-not $bootJar) {
+        Fail-Script "Unable to find the Spring Boot jar under build/libs after running bootJar."
+    }
+
+    & java "-jar" $bootJar.FullName "--server.port=$port"
     $exitCode = $LASTEXITCODE
     if ($exitCode -eq 143) {
         Write-Output "Spring Boot stopped cleanly after receiving SIGTERM."
