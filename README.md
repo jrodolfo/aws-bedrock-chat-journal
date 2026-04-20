@@ -1,8 +1,8 @@
+![ci](https://github.com/jrodolfo/aws-bedrock-chat-journal/actions/workflows/ci.yml/badge.svg)
 ![java](https://img.shields.io/badge/java-25-orange)
 ![shell](https://img.shields.io/badge/shell-bash-89e051)
 ![spring boot](https://img.shields.io/badge/spring%20boot-3.5.13-6db33f)
 ![aws bedrock](https://img.shields.io/badge/aws-bedrock-ff9900)
-![ci](https://github.com/jrodolfo/aws-bedrock-chat-journal/actions/workflows/ci.yml/badge.svg)
 ![license](https://img.shields.io/badge/license-MIT-blue)
 
 # AWS Bedrock Chat Journal
